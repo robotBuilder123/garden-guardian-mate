@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { PlantCard, Plant } from "@/components/PlantCard";
+import { PlantCard, Plant, Comment } from "@/components/PlantCard";
 import { AddPlantDialog } from "@/components/AddPlantDialog";
 import { GardenLayout } from "@/components/GardenLayout";
+import { PlantCommentsDialog } from "@/components/PlantCommentsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,8 @@ import gardenHero from "@/assets/garden-hero.jpg";
 
 const Index = () => {
   const { toast } = useToast();
+  const [commentsDialogPlant, setCommentsDialogPlant] = useState<Plant | null>(null);
+  const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
   
   // Load plants from localStorage or use default data
   const loadPlantsFromStorage = (): Plant[] => {
@@ -38,7 +41,8 @@ const Index = () => {
         location: "Garden Bed A",
         totalHarvest: 2.5,
         lastHarvest: "2024-07-30",
-        spaceRequired: 1.5
+        spaceRequired: 1.5,
+        comments: []
       },
       {
         id: "2",
@@ -50,7 +54,8 @@ const Index = () => {
         status: "healthy",
         location: "Herb Planter",
         totalHarvest: 0.3,
-        spaceRequired: 0.5
+        spaceRequired: 0.5,
+        comments: []
       }
     ];
   };
@@ -68,11 +73,12 @@ const Index = () => {
     }
   }, [plants]);
 
-  const addPlant = (newPlant: Omit<Plant, 'id'>) => {
+  const addPlant = (newPlant: Omit<Plant, 'id' | 'totalHarvest' | 'comments'>) => {
     const plant: Plant = {
       ...newPlant,
       id: Date.now().toString(),
       totalHarvest: 0,
+      comments: [],
     };
     setPlants(prev => [...prev, plant]);
     toast({
@@ -151,6 +157,37 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const viewComments = (plant: Plant) => {
+    setCommentsDialogPlant(plant);
+    setIsCommentsDialogOpen(true);
+  };
+
+  const addComment = (plantId: string, commentText: string) => {
+    const newComment: Comment = {
+      id: Date.now().toString(),
+      text: commentText,
+      timestamp: new Date().toISOString(),
+    };
+
+    setPlants(prev => prev.map(plant => 
+      plant.id === plantId 
+        ? { ...plant, comments: [...plant.comments, newComment] }
+        : plant
+    ));
+
+    // Update the dialog plant to reflect the new comment
+    setCommentsDialogPlant(prev => 
+      prev?.id === plantId 
+        ? { ...prev, comments: [...prev.comments, newComment] }
+        : prev
+    );
+
+    toast({
+      title: "Comment added",
+      description: "Your comment has been saved.",
+    });
   };
 
   const filteredPlants = plants.filter(plant => {
@@ -323,6 +360,7 @@ const Index = () => {
                      onHarvest={harvestPlant}
                      onEdit={editPlant}
                      onDelete={deletePlant}
+                     onViewComments={viewComments}
                    />
                 ))}
               </div>
@@ -467,6 +505,13 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <PlantCommentsDialog
+        plant={commentsDialogPlant}
+        open={isCommentsDialogOpen}
+        onOpenChange={setIsCommentsDialogOpen}
+        onAddComment={addComment}
+      />
     </div>
   );
 };

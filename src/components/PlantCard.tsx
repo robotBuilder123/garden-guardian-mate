@@ -1,8 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Droplets, Scissors, Calendar, MoreVertical, Scale, Square, Trash2 } from "lucide-react";
+import { Droplets, Scissors, Calendar, MoreVertical, Scale, Square, Trash2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export interface Comment {
+  id: string;
+  text: string;
+  timestamp: string;
+}
 
 export interface Plant {
   id: string;
@@ -16,6 +22,7 @@ export interface Plant {
   totalHarvest: number; // in kg
   lastHarvest?: string;
   spaceRequired: number; // in sqm
+  comments: Comment[];
 }
 
 interface PlantCardProps {
@@ -25,6 +32,7 @@ interface PlantCardProps {
   onHarvest: (id: string, amount: number) => void;
   onEdit: (plant: Plant) => void;
   onDelete: (id: string) => void;
+  onViewComments: (plant: Plant) => void;
 }
 
 const statusConfig = {
@@ -33,7 +41,7 @@ const statusConfig = {
   critical: { color: 'bg-critical', text: 'Critical' }
 };
 
-export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit, onDelete }: PlantCardProps) => {
+export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit, onDelete, onViewComments }: PlantCardProps) => {
   const daysSinceWatered = Math.floor(
     (new Date().getTime() - new Date(plant.lastWatered).getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -56,6 +64,19 @@ export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit, onDe
             >
               {statusConfig[plant.status].text}
             </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onViewComments(plant)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity relative"
+            >
+              <MessageSquare className="h-4 w-4" />
+              {plant.comments.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {plant.comments.length}
+                </span>
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
