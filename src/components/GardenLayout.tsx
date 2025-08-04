@@ -310,31 +310,39 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
 
   // Drag-to-remove handlers
   const handlePlantDragStart = (e: React.DragEvent, plantId: string) => {
+    console.log('Drag start for plant:', plantId);
     setDraggedPlantId(plantId);
     e.dataTransfer.setData('application/json', JSON.stringify({ plantId, action: 'remove' }));
     e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation(); // Prevent garden click handler
   };
 
   const handlePlantDragEnd = () => {
+    console.log('Drag end');
     setDraggedPlantId(null);
     setIsDraggingOut(false);
   };
 
   const handleRemoveZoneDragOver = (e: React.DragEvent) => {
+    console.log('Drag over remove zone');
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setIsDraggingOut(true);
   };
 
   const handleRemoveZoneDragLeave = () => {
+    console.log('Drag leave remove zone');
     setIsDraggingOut(false);
   };
 
   const handleRemoveZoneDrop = (e: React.DragEvent) => {
+    console.log('Drop on remove zone');
     e.preventDefault();
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      console.log('Drop data:', data);
       if (data.action === 'remove' && data.plantId) {
+        console.log('Removing plant:', data.plantId);
         // Remove plant from its current position
         setPlantPositions(prev => prev.filter(pos => pos.plantId !== data.plantId));
         setIsDraggingOut(false);
@@ -936,12 +944,20 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
                               fontSize: '12px',
                               lineHeight: '1.2'
                             }}
-                            draggable={true}
-                            onDragStart={(e) => handlePlantDragStart(e, plant.id)}
-                            onDragEnd={handlePlantDragEnd}
+                            draggable={editingPlantId !== plant.id} // Only draggable when not editing
+                            onDragStart={(e) => {
+                              console.log('Plant drag start event triggered');
+                              handlePlantDragStart(e, plant.id);
+                            }}
+                            onDragEnd={(e) => {
+                              console.log('Plant drag end event triggered');
+                              handlePlantDragEnd();
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handlePlantSelect(plant.id);
+                              if (!draggedPlantId) { // Only handle click if not dragging
+                                handlePlantSelect(plant.id);
+                              }
                             }}
                             onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
                        >
