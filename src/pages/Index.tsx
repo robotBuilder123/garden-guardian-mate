@@ -263,9 +263,17 @@ const Index = () => {
     localStorage.setItem('current-season', seasonName);
     setPlants([]);
     
+    // Clear plant positions from garden beds while keeping the bed layout
+    try {
+      localStorage.removeItem(`garden-plant-positions-${currentSeason}`);
+      localStorage.setItem(`garden-plant-positions-${seasonName}`, JSON.stringify([]));
+    } catch (error) {
+      console.error('Error clearing plant positions:', error);
+    }
+    
     toast({
       title: "New garden started!",
-      description: `Welcome to your ${seasonName}!`,
+      description: `Welcome to your ${seasonName}! Garden beds preserved, plants and harvest data cleared.`,
     });
   };
 

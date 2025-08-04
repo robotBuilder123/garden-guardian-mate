@@ -22,11 +22,21 @@ interface PlantPosition {
 }
 
 export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
-  // Load garden data from localStorage
+  // Get current season from localStorage for proper data separation
+  const getCurrentSeason = () => {
+    try {
+      return localStorage.getItem('current-season') || '2024 Season';
+    } catch {
+      return '2024 Season';
+    }
+  };
+  
+  // Load garden data from localStorage with season-specific keys
   const loadGardenDataFromStorage = () => {
+    const currentSeason = getCurrentSeason();
     try {
       const savedBeds = localStorage.getItem('garden-beds');
-      const savedPositions = localStorage.getItem('garden-plant-positions');
+      const savedPositions = localStorage.getItem(`garden-plant-positions-${currentSeason}`);
       const savedSettings = localStorage.getItem('garden-settings');
       
       let beds: GardenBed[] = [];
@@ -127,8 +137,9 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
   }, [beds]);
 
   useEffect(() => {
+    const currentSeason = getCurrentSeason();
     try {
-      localStorage.setItem('garden-plant-positions', JSON.stringify(plantPositions));
+      localStorage.setItem(`garden-plant-positions-${currentSeason}`, JSON.stringify(plantPositions));
     } catch (error) {
       console.error('Error saving plant positions to storage:', error);
     }
