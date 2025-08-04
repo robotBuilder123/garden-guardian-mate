@@ -362,9 +362,9 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     }
   };
 
-  // Simple, reliable resize handlers
-  const handleResizeStart = (bedId: string, type: 'corner' | 'right' | 'bottom' | 'left' | 'top', e: React.MouseEvent) => {
-    console.log('Starting resize:', bedId, type);
+  // Drag-to-move handlers (keeps bed size constant)
+  const handleBedDragStart = (bedId: string, e: React.MouseEvent) => {
+    console.log('Starting bed move:', bedId);
     e.stopPropagation();
     e.preventDefault();
     
@@ -373,8 +373,6 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     
     const startX = e.clientX;
     const startY = e.clientY;
-    const startWidth = bed.width;
-    const startHeight = bed.height;
     const startPosX = bed.x;
     const startPosY = bed.y;
     
@@ -382,43 +380,21 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
       const deltaX = (moveEvent.clientX - startX) / 60; // 60px = 1 meter
       const deltaY = (moveEvent.clientY - startY) / 60;
       
-      let newWidth = startWidth;
-      let newHeight = startHeight;
-      let newX = startPosX;
-      let newY = startPosY;
-
-      switch (type) {
-        case 'corner':
-          newWidth = Math.max(0.25, Math.round((startWidth + deltaX) * 4) / 4);
-          newHeight = Math.max(0.25, Math.round((startHeight + deltaY) * 4) / 4);
-          break;
-        case 'right':
-          newWidth = Math.max(0.25, Math.round((startWidth + deltaX) * 4) / 4);
-          break;
-        case 'bottom':
-          newHeight = Math.max(0.25, Math.round((startHeight + deltaY) * 4) / 4);
-          break;
-        case 'left':
-          newWidth = Math.max(0.25, Math.round((startWidth - deltaX) * 4) / 4);
-          newX = startPosX + (startWidth - newWidth);
-          break;
-        case 'top':
-          newHeight = Math.max(0.25, Math.round((startHeight - deltaY) * 4) / 4);
-          newY = startPosY + (startHeight - newHeight);
-          break;
-      }
+      // Calculate new position with 25cm precision
+      let newX = Math.round((startPosX + deltaX) * 4) / 4;
+      let newY = Math.round((startPosY + deltaY) * 4) / 4;
       
-      // Keep within boundaries
-      newX = Math.max(0, Math.min(newX, gardenWidth - newWidth));
-      newY = Math.max(0, Math.min(newY, gardenHeight - newHeight));
+      // Keep within garden boundaries (bed size stays the same)
+      newX = Math.max(0, Math.min(newX, gardenWidth - bed.width));
+      newY = Math.max(0, Math.min(newY, gardenHeight - bed.height));
       
       setBeds(prev => prev.map(b => 
-        b.id === bedId ? { ...b, width: newWidth, height: newHeight, x: newX, y: newY } : b
+        b.id === bedId ? { ...b, x: newX, y: newY } : b
       ));
     };
 
     const handleMouseUp = () => {
-      console.log('Ending resize');
+      console.log('Ending bed move');
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -965,23 +941,30 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                       'bg-blue-100 border-blue-400 hover:bg-blue-150'
                     } ${isOvercrowded ? 'ring-4 ring-red-400 animate-pulse' : ''} ${
                       selectedBed === bed.id ? 'shadow-2xl ring-4 ring-primary scale-105' : ''
-                    } ${placementMode === 'plant' ? 'ring-2 ring-blue-300 border-blue-400 cursor-crosshair' : 'cursor-pointer'}`}
-                    style={{
-                      left: `${bed.x * 60}px`,
-                      top: `${bed.y * 60 + 40}px`,
-                      width: `${bed.width * 60}px`,
-                      height: `${bed.height * 60}px`,
-                      minWidth: '80px',
-                      minHeight: '60px'
-                    }}
-                    data-bed-id={bed.id}
-                    onClick={(e) => {
-                      if (placementMode === 'plant') {
-                        handleBedClick(bed.id, e);
-                      } else {
-                        handleBedSelect(bed.id);
-                      }
-                    }}
+                     } ${placementMode === 'plant' ? 'ring-2 ring-blue-300 border-blue-400 cursor-crosshair' : 'cursor-move'}`}
+                     style={{
+                       left: `${bed.x * 60}px`,
+                       top: `${bed.y * 60 + 40}px`,
+                       width: `${bed.width * 60}px`,
+                       height: `${bed.height * 60}px`,
+                       minWidth: '80px',
+                       minHeight: '60px'
+                     }}
+                     data-bed-id={bed.id}
+                     onMouseDown={(e) => {
+                       if (placementMode === 'plant') {
+                         // Don't start drag when in plant placement mode
+                         return;
+                       }
+                       handleBedDragStart(bed.id, e);
+                     }}
+                     onClick={(e) => {
+                       if (placementMode === 'plant') {
+                         handleBedClick(bed.id, e);
+                       } else {
+                         handleBedSelect(bed.id);
+                       }
+                     }}
                   >
                     <div className="text-xs font-medium mb-1 flex items-center justify-between">
                       <div className="flex items-center gap-1">
@@ -1025,44 +1008,8 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                     <div className="text-xs text-muted-foreground mb-2">
                       {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
                     </div>
-                    
-                     {/* Resize Handles */}
-                     {/* Top edge */}
-                     <div
-                       className="absolute -top-1 left-4 right-4 h-3 cursor-n-resize bg-transparent hover:bg-blue-400/30 transition-all border-t-2 border-transparent hover:border-blue-400"
-                       onMouseDown={(e) => handleResizeStart(bed.id, 'top', e)}
-                       title="Drag to resize height"
-                     />
                      
-                     {/* Bottom edge */}
-                     <div
-                       className="absolute -bottom-1 left-4 right-4 h-3 cursor-s-resize bg-transparent hover:bg-blue-400/30 transition-all border-b-2 border-transparent hover:border-blue-400"
-                       onMouseDown={(e) => handleResizeStart(bed.id, 'bottom', e)}
-                       title="Drag to resize height"
-                     />
-                     
-                     {/* Left edge */}
-                     <div
-                       className="absolute -left-1 top-4 bottom-4 w-3 cursor-w-resize bg-transparent hover:bg-blue-400/30 transition-all border-l-2 border-transparent hover:border-blue-400"
-                       onMouseDown={(e) => handleResizeStart(bed.id, 'left', e)}
-                       title="Drag to resize width"
-                     />
-                     
-                     {/* Right edge */}
-                     <div
-                       className="absolute -right-1 top-4 bottom-4 w-3 cursor-e-resize bg-transparent hover:bg-blue-400/30 transition-all border-r-2 border-transparent hover:border-blue-400"
-                       onMouseDown={(e) => handleResizeStart(bed.id, 'right', e)}
-                       title="Drag to resize width"
-                     />
-                     
-                     {/* Bottom-right corner handle (visible) */}
-                     <div
-                       className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 cursor-se-resize opacity-60 hover:opacity-100 transition-all rounded-tl-lg"
-                       onMouseDown={(e) => handleResizeStart(bed.id, 'corner', e)}
-                       title="Drag to resize bed diagonally"
-                     />
-                    
-                       {bedPlants.map(({ plant, x, y }) => (
+                        {bedPlants.map(({ plant, x, y }) => (
                          <div
                            key={plant.id}
                             className={`absolute text-white text-xs p-2 min-w-16 h-10 rounded cursor-move select-none border border-white hover:shadow-lg transition-all duration-200 touch-manipulation flex flex-col items-center justify-center ${
