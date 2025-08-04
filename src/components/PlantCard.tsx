@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Droplets, Scissors, Calendar, MoreVertical, Scale, Square } from "lucide-react";
+import { Droplets, Scissors, Calendar, MoreVertical, Scale, Square, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Plant {
@@ -24,6 +24,7 @@ interface PlantCardProps {
   onFertilize: (id: string) => void;
   onHarvest: (id: string, amount: number) => void;
   onEdit: (plant: Plant) => void;
+  onDelete: (id: string) => void;
 }
 
 const statusConfig = {
@@ -32,7 +33,7 @@ const statusConfig = {
   critical: { color: 'bg-critical', text: 'Critical' }
 };
 
-export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit }: PlantCardProps) => {
+export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit, onDelete }: PlantCardProps) => {
   const daysSinceWatered = Math.floor(
     (new Date().getTime() - new Date(plant.lastWatered).getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -55,6 +56,14 @@ export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit }: Pl
             >
               {statusConfig[plant.status].text}
             </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(plant.id)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"

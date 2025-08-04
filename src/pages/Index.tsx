@@ -141,6 +141,18 @@ const Index = () => {
     });
   };
 
+  const deletePlant = (id: string) => {
+    const plant = plants.find(p => p.id === id);
+    if (plant && window.confirm(`Are you sure you want to delete ${plant.name}?`)) {
+      setPlants(prev => prev.filter(p => p.id !== id));
+      toast({
+        title: "Plant deleted",
+        description: `${plant.name} has been removed from your garden.`,
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredPlants = plants.filter(plant => {
     const matchesSearch = plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plant.type.toLowerCase().includes(searchTerm.toLowerCase());
@@ -303,14 +315,15 @@ const Index = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPlants.map((plant) => (
-                  <PlantCard
-                    key={plant.id}
-                    plant={plant}
-                    onWater={waterPlant}
-                    onFertilize={fertilizePlant}
-                    onHarvest={harvestPlant}
-                    onEdit={editPlant}
-                  />
+                   <PlantCard
+                     key={plant.id}
+                     plant={plant}
+                     onWater={waterPlant}
+                     onFertilize={fertilizePlant}
+                     onHarvest={harvestPlant}
+                     onEdit={editPlant}
+                     onDelete={deletePlant}
+                   />
                 ))}
               </div>
             )}
