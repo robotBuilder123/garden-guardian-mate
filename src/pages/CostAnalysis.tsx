@@ -174,7 +174,7 @@ const CostAnalysis = () => {
       id: Date.now().toString(),
       name: newExpense.name,
       category: newExpense.category as any,
-      cost: Number(newExpense.cost),
+      cost: convertToUSD(Number(newExpense.cost)), // Convert to USD for storage
       date: newExpense.date || new Date().toISOString().split('T')[0],
       notes: newExpense.notes
     };
@@ -248,6 +248,18 @@ const CostAnalysis = () => {
     const symbol = currencies[currency as keyof typeof currencies]?.symbol || '$';
     const converted = amount * rate;
     return `${symbol}${converted.toFixed(2)}`;
+  };
+
+  // Convert from selected currency to USD for storage
+  const convertToUSD = (amount: number) => {
+    const rate = currencies[currency as keyof typeof currencies]?.rate || 1;
+    return amount / rate;
+  };
+
+  // Convert from USD to selected currency for display in input
+  const convertFromUSD = (usdAmount: number) => {
+    const rate = currencies[currency as keyof typeof currencies]?.rate || 1;
+    return usdAmount * rate;
   };
 
   const formatWeight = (kg: number) => {
@@ -560,14 +572,14 @@ const CostAnalysis = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="expense-cost">Cost ({currencies[currency as keyof typeof currencies]?.symbol || '$'})</Label>
-                      <Input
-                        id="expense-cost"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={newExpense.cost || ''}
-                        onChange={(e) => setNewExpense(prev => ({ ...prev, cost: Number(e.target.value) }))}
-                      />
+                        <Input
+                          id="expense-cost"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={newExpense.cost || ''}
+                          onChange={(e) => setNewExpense(prev => ({ ...prev, cost: Number(e.target.value) }))}
+                        />
                     </div>
                     <div>
                       <Label htmlFor="expense-date">Date</Label>
