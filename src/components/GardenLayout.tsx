@@ -143,18 +143,25 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
           {/* Garden Grid */}
           <div 
             className="relative bg-green-50 rounded-lg p-6 min-h-96 border-2 border-green-200"
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
             onDrop={(e) => {
               e.preventDefault();
               const data = e.dataTransfer.getData('text/plain');
               const plantId = e.dataTransfer.getData('application/plant-id');
               
+              console.log('Garden container drop:', { data, plantId, draggedBed, draggedPlant });
+              
+              // Only handle bed drops here, let plant drops bubble to beds
               if (data.startsWith('bed-') && draggedBed) {
                 const bedId = data.replace('bed-', '');
                 const rect = e.currentTarget.getBoundingClientRect();
                 const newX = Math.round((e.clientX - rect.left - dragOffset.x) / 60);
                 const newY = Math.round((e.clientY - rect.top - dragOffset.y - 40) / 60);
                 handleBedDrag(bedId, newX, newY);
+                setDraggedBed(null);
               }
             }}
           >
