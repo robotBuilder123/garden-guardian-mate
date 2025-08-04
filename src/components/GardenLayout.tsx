@@ -285,9 +285,27 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
   const handleBedClick = (bedId: string, e: React.MouseEvent) => {
     if (!selectedPlant || placementMode !== 'plant') return;
     
-    // Always place plant in the center of the bed
-    const x = 0.5;
-    const y = 0.5;
+    e.stopPropagation();
+    
+    // Calculate precise click position within the bed
+    const bedElement = e.currentTarget as HTMLElement;
+    const rect = bedElement.getBoundingClientRect();
+    const bed = beds.find(b => b.id === bedId);
+    if (!bed) return;
+    
+    // Calculate relative position within the bed (0 to 1)
+    const relativeX = (e.clientX - rect.left) / rect.width;
+    const relativeY = (e.clientY - rect.top) / rect.height;
+    
+    // Snap to 25cm grid within the bed
+    const gridX = Math.round(relativeX * bed.width * 4) / (bed.width * 4);
+    const gridY = Math.round(relativeY * bed.height * 4) / (bed.height * 4);
+    
+    // Clamp to ensure plant stays within bed bounds
+    const x = Math.max(0.05, Math.min(0.95, gridX));
+    const y = Math.max(0.05, Math.min(0.95, gridY));
+    
+    console.log('Placing plant at position:', { x, y, bedId, relativeX, relativeY });
     
     handlePlantDrop(selectedPlant, bedId, x, y);
     
