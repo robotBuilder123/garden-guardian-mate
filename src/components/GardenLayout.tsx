@@ -262,8 +262,9 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     const rect = e.currentTarget.getBoundingClientRect();
     const rawX = (e.clientX - rect.left - 40) / 60;
     const rawY = (e.clientY - rect.top - 80) / 60;
-    const newX = Math.max(0, Math.round(rawX));
-    const newY = Math.max(0, Math.round(rawY));
+    // Round to nearest decimeter (0.1 meter precision)
+    const newX = Math.max(0, Math.round(rawX * 10) / 10);
+    const newY = Math.max(0, Math.round(rawY * 10) / 10);
     
     const bed = beds.find(b => b.id === selectedBed);
     if (bed) {
@@ -381,14 +382,15 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     const deltaX = (e.clientX - resizeStartPos.x) / 60; // Convert to grid units
     const deltaY = (e.clientY - resizeStartPos.y) / 60;
     
-    const newWidth = Math.max(1, Math.round(originalBedSize.width + deltaX));
-    const newHeight = Math.max(1, Math.round(originalBedSize.height + deltaY));
+    // Round to nearest decimeter (0.1 meter precision)
+    const newWidth = Math.max(0.1, Math.round((originalBedSize.width + deltaX) * 10) / 10);
+    const newHeight = Math.max(0.1, Math.round((originalBedSize.height + deltaY) * 10) / 10);
     
     // Ensure bed doesn't exceed garden boundaries
     const bed = beds.find(b => b.id === resizingBedId);
     if (bed) {
-      const maxWidth = Math.max(1, gardenWidth - bed.x);
-      const maxHeight = Math.max(1, gardenHeight - bed.y);
+      const maxWidth = Math.max(0.1, gardenWidth - bed.x);
+      const maxHeight = Math.max(0.1, gardenHeight - bed.y);
       const clampedWidth = Math.min(newWidth, maxWidth);
       const clampedHeight = Math.min(newHeight, maxHeight);
       
@@ -850,15 +852,19 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                   height: `${gardenHeight * 60}px`,
                 }}
               >
-                {/* Grid dots for visual snapping feedback */}
-                {Array.from({ length: gardenWidth + 1 }).map((_, x) =>
-                  Array.from({ length: gardenHeight + 1 }).map((_, y) => (
+                {/* Dense grid dots for decimeter precision snapping */}
+                {Array.from({ length: Math.floor(gardenWidth * 10) + 1 }).map((_, x) =>
+                  Array.from({ length: Math.floor(gardenHeight * 10) + 1 }).map((_, y) => (
                     <div
                       key={`${x}-${y}`}
-                      className="absolute w-2 h-2 bg-green-500 rounded-full opacity-60 animate-pulse"
+                      className={`absolute rounded-full opacity-60 animate-pulse ${
+                        x % 10 === 0 && y % 10 === 0 
+                          ? 'w-2 h-2 bg-green-600' 
+                          : 'w-1 h-1 bg-green-400'
+                      }`}
                       style={{
-                        left: `${x * 60 - 4}px`,
-                        top: `${y * 60 - 4}px`,
+                        left: `${x * 6 - (x % 10 === 0 ? 4 : 2)}px`,
+                        top: `${y * 6 - (y % 10 === 0 ? 4 : 2)}px`,
                       }}
                     />
                   ))
@@ -879,9 +885,10 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                   minHeight: '120px'
                 }}
               >
-                {/* Grid overlay inside garden boundaries */}
+                {/* Dense grid overlay inside garden boundaries (decimeter precision) */}
                 <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,_#22c55e_1px,_transparent_1px),_linear-gradient(to_bottom,_#22c55e_1px,_transparent_1px)] bg-[length:60px_60px]" />
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
+                <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,_#22c55e_0.5px,_transparent_0.5px),_linear-gradient(to_bottom,_#22c55e_0.5px,_transparent_0.5px)] bg-[length:6px_6px]" />
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:6px_6px]" />
                 
                 <div className="absolute -top-6 left-0 text-xs font-medium text-green-700">
                   Garden Area: {gardenWidth}m × {gardenHeight}m
