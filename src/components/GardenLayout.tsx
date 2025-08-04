@@ -987,7 +987,6 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                           ) : (
                             <>
                               <div>{plant.name}</div>
-                              <div className="text-xs opacity-75 mt-1">Drag to remove</div>
                             </>
                           )}
                        </div>
