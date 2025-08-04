@@ -41,6 +41,7 @@ export const AddPlantDialog = ({ onAddPlant }: AddPlantDialogProps) => {
       lastWatered: today,
       lastFertilized: today,
       status: 'healthy' as const,
+      totalHarvest: 0,
     });
 
     setFormData({

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Leaf, Droplets, Calendar, Map } from "lucide-react";
+import { Search, Leaf, Droplets, Calendar, Map, Scale } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import gardenHero from "@/assets/garden-hero.jpg";
 
@@ -21,7 +21,9 @@ const Index = () => {
       lastWatered: "2024-08-02",
       lastFertilized: "2024-07-20",
       status: "needs-care",
-      location: "Garden Bed A"
+      location: "Garden Bed A",
+      totalHarvest: 2.5,
+      lastHarvest: "2024-07-30"
     },
     {
       id: "2",
@@ -31,7 +33,8 @@ const Index = () => {
       lastWatered: "2024-08-04",
       lastFertilized: "2024-07-25",
       status: "healthy",
-      location: "Herb Planter"
+      location: "Herb Planter",
+      totalHarvest: 0.3
     }
   ]);
   
@@ -42,6 +45,7 @@ const Index = () => {
     const plant: Plant = {
       ...newPlant,
       id: Date.now().toString(),
+      totalHarvest: 0,
     };
     setPlants(prev => [...prev, plant]);
     toast({
@@ -71,6 +75,22 @@ const Index = () => {
     toast({
       title: "Plant cared for!",
       description: "Your plant received some TLC.",
+    });
+  };
+
+  const harvestPlant = (id: string, amount: number) => {
+    setPlants(prev => prev.map(plant => 
+      plant.id === id 
+        ? { 
+            ...plant, 
+            totalHarvest: plant.totalHarvest + amount,
+            lastHarvest: new Date().toISOString()
+          }
+        : plant
+    ));
+    toast({
+      title: "Harvest recorded!",
+      description: `Added ${amount} kg to your harvest total.`,
     });
   };
 
@@ -154,7 +174,7 @@ const Index = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-card rounded-lg p-6 border border-border/50">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
@@ -189,6 +209,20 @@ const Index = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Healthy Plants</p>
                 <p className="text-2xl font-semibold text-foreground">{statusCounts.healthy}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-lg p-6 border border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Scale className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Harvest</p>
+                <p className="text-2xl font-semibold text-foreground">
+                  {plants.reduce((sum, plant) => sum + plant.totalHarvest, 0).toFixed(1)} kg
+                </p>
               </div>
             </div>
           </div>
@@ -231,6 +265,7 @@ const Index = () => {
                     plant={plant}
                     onWater={waterPlant}
                     onFertilize={fertilizePlant}
+                    onHarvest={harvestPlant}
                     onEdit={editPlant}
                   />
                 ))}

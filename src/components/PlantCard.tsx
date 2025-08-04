@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Droplets, Scissors, Calendar, MoreVertical } from "lucide-react";
+import { Droplets, Scissors, Calendar, MoreVertical, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Plant {
@@ -13,12 +13,15 @@ export interface Plant {
   lastFertilized: string;
   status: 'healthy' | 'needs-care' | 'critical';
   location: string;
+  totalHarvest: number; // in kg
+  lastHarvest?: string;
 }
 
 interface PlantCardProps {
   plant: Plant;
   onWater: (id: string) => void;
   onFertilize: (id: string) => void;
+  onHarvest: (id: string, amount: number) => void;
   onEdit: (plant: Plant) => void;
 }
 
@@ -28,7 +31,7 @@ const statusConfig = {
   critical: { color: 'bg-critical', text: 'Critical' }
 };
 
-export const PlantCard = ({ plant, onWater, onFertilize, onEdit }: PlantCardProps) => {
+export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit }: PlantCardProps) => {
   const daysSinceWatered = Math.floor(
     (new Date().getTime() - new Date(plant.lastWatered).getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -85,6 +88,16 @@ export const PlantCard = ({ plant, onWater, onFertilize, onEdit }: PlantCardProp
               {new Date(plant.plantedDate).toLocaleDateString()}
             </span>
           </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Scale className="h-4 w-4" />
+              <span>Total Harvest</span>
+            </div>
+            <span className="font-medium text-foreground">
+              {plant.totalHarvest.toFixed(1)} kg
+            </span>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -105,6 +118,20 @@ export const PlantCard = ({ plant, onWater, onFertilize, onEdit }: PlantCardProp
           >
             <Scissors className="h-4 w-4 mr-2" />
             Care
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const amount = prompt("Enter harvest amount (kg):");
+              if (amount && !isNaN(Number(amount))) {
+                onHarvest(plant.id, Number(amount));
+              }
+            }}
+            className="flex-1 hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Scale className="h-4 w-4 mr-2" />
+            Harvest
           </Button>
         </div>
       </CardContent>
