@@ -143,6 +143,8 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
   const [resizingBedId, setResizingBedId] = useState<string | null>(null);
   const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
   const [originalBedSize, setOriginalBedSize] = useState({ width: 0, height: 0 });
+  const [resizeType, setResizeType] = useState<'corner' | 'right' | 'bottom' | 'left' | 'top' | null>(null);
+  const [originalBedPos, setOriginalBedPos] = useState({ x: 0, y: 0 });
 
   // Save garden data to localStorage whenever state changes
   useEffect(() => {
@@ -361,7 +363,7 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
   };
 
   // Resize handlers
-  const handleResizeStart = (bedId: string, e: React.MouseEvent) => {
+  const handleResizeStart = (bedId: string, type: 'corner' | 'right' | 'bottom' | 'left' | 'top', e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
@@ -369,41 +371,67 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     if (!bed) return;
     
     setResizingBedId(bedId);
+    setResizeType(type);
     setResizeStartPos({ x: e.clientX, y: e.clientY });
     setOriginalBedSize({ width: bed.width, height: bed.height });
+    setOriginalBedPos({ x: bed.x, y: bed.y });
     
     document.addEventListener('mousemove', handleResize);
     document.addEventListener('mouseup', handleResizeEnd);
   };
 
   const handleResize = (e: MouseEvent) => {
-    if (!resizingBedId) return;
+    if (!resizingBedId || !resizeType) return;
     
     const deltaX = (e.clientX - resizeStartPos.x) / 60; // Convert to grid units
     const deltaY = (e.clientY - resizeStartPos.y) / 60;
     
-    // Round to nearest 25cm (0.25 meter precision)
-    const newWidth = Math.max(0.25, Math.round((originalBedSize.width + deltaX) * 4) / 4);
-    const newHeight = Math.max(0.25, Math.round((originalBedSize.height + deltaY) * 4) / 4);
+    const bed = beds.find(b => b.id === resizingBedId);
+    if (!bed) return;
+
+    let newWidth = originalBedSize.width;
+    let newHeight = originalBedSize.height;
+    let newX = originalBedPos.x;
+    let newY = originalBedPos.y;
+
+    // Calculate new dimensions based on resize type
+    switch (resizeType) {
+      case 'corner': // Bottom-right corner
+        newWidth = Math.max(0.25, Math.round((originalBedSize.width + deltaX) * 4) / 4);
+        newHeight = Math.max(0.25, Math.round((originalBedSize.height + deltaY) * 4) / 4);
+        break;
+      case 'right':
+        newWidth = Math.max(0.25, Math.round((originalBedSize.width + deltaX) * 4) / 4);
+        break;
+      case 'bottom':
+        newHeight = Math.max(0.25, Math.round((originalBedSize.height + deltaY) * 4) / 4);
+        break;
+      case 'left':
+        newWidth = Math.max(0.25, Math.round((originalBedSize.width - deltaX) * 4) / 4);
+        newX = Math.max(0, Math.round((originalBedPos.x + deltaX) * 4) / 4);
+        break;
+      case 'top':
+        newHeight = Math.max(0.25, Math.round((originalBedSize.height - deltaY) * 4) / 4);
+        newY = Math.max(0, Math.round((originalBedPos.y + deltaY) * 4) / 4);
+        break;
+    }
     
     // Ensure bed doesn't exceed garden boundaries
-    const bed = beds.find(b => b.id === resizingBedId);
-    if (bed) {
-      const maxWidth = Math.max(0.25, gardenWidth - bed.x);
-      const maxHeight = Math.max(0.25, gardenHeight - bed.y);
-      const clampedWidth = Math.min(newWidth, maxWidth);
-      const clampedHeight = Math.min(newHeight, maxHeight);
-      
-      setBeds(prev => prev.map(b => 
-        b.id === resizingBedId 
-          ? { ...b, width: clampedWidth, height: clampedHeight }
-          : b
-      ));
-    }
+    const maxWidth = Math.max(0.25, gardenWidth - newX);
+    const maxHeight = Math.max(0.25, gardenHeight - newY);
+    const clampedWidth = Math.min(newWidth, maxWidth);
+    const clampedHeight = Math.min(newHeight, maxHeight);
+    
+    setBeds(prev => prev.map(b => 
+      b.id === resizingBedId 
+        ? { ...b, width: clampedWidth, height: clampedHeight, x: newX, y: newY }
+        : b
+    ));
   };
 
   const handleResizeEnd = () => {
     setResizingBedId(null);
+    setResizeType(null);
     document.removeEventListener('mousemove', handleResize);
     document.removeEventListener('mouseup', handleResizeEnd);
   };
@@ -1007,13 +1035,42 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                       {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
                     </div>
                     
-                    {/* Resize Handle */}
+                    {/* Resize Handles */}
+                    {/* Top edge */}
+                    <div
+                      className="absolute top-0 left-2 right-2 h-2 cursor-n-resize opacity-0 hover:opacity-50 hover:bg-gray-400 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(bed.id, 'top', e)}
+                      title="Drag to resize height"
+                    />
+                    
+                    {/* Bottom edge */}
+                    <div
+                      className="absolute bottom-0 left-2 right-2 h-2 cursor-s-resize opacity-0 hover:opacity-50 hover:bg-gray-400 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(bed.id, 'bottom', e)}
+                      title="Drag to resize height"
+                    />
+                    
+                    {/* Left edge */}
+                    <div
+                      className="absolute left-0 top-2 bottom-2 w-2 cursor-w-resize opacity-0 hover:opacity-50 hover:bg-gray-400 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(bed.id, 'left', e)}
+                      title="Drag to resize width"
+                    />
+                    
+                    {/* Right edge */}
+                    <div
+                      className="absolute right-0 top-2 bottom-2 w-2 cursor-e-resize opacity-0 hover:opacity-50 hover:bg-gray-400 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(bed.id, 'right', e)}
+                      title="Drag to resize width"
+                    />
+                    
+                    {/* Bottom-right corner handle (visible) */}
                     <div
                       className="absolute bottom-0 right-0 w-4 h-4 bg-gray-400 hover:bg-gray-600 cursor-se-resize opacity-50 hover:opacity-100 transition-opacity"
                       style={{
                         clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)'
                       }}
-                      onMouseDown={(e) => handleResizeStart(bed.id, e)}
+                      onMouseDown={(e) => handleResizeStart(bed.id, 'corner', e)}
                       title="Drag to resize bed"
                     />
                     
