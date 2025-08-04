@@ -451,6 +451,24 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                       <div className="space-y-1 text-sm text-muted-foreground">
                         <div>Dimensions: {bed.width}m × {bed.height}m</div>
                         <div>Area: {(bed.width * bed.height).toFixed(1)}m²</div>
+                        {(() => {
+                          const bedPlants = plantPositions
+                            .filter(pos => pos.bedId === bed.id)
+                            .map(pos => ({ 
+                              ...pos, 
+                              plant: plants.find(p => p.id === pos.plantId)! 
+                            }))
+                            .filter(item => item.plant);
+                          const totalUsedSpace = bedPlants.reduce((sum, item) => sum + item.plant.spaceRequired, 0);
+                          const totalSpace = bed.width * bed.height;
+                          const isOvercrowded = totalUsedSpace > totalSpace;
+                          
+                          return (
+                            <div className={`font-medium ${isOvercrowded ? 'text-red-500' : 'text-green-600'}`}>
+                              Space Used: {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m² ({bedPlants.length} plants)
+                            </div>
+                          );
+                        })()}
                       </div>
                       
                        <div className="mt-3 text-xs text-muted-foreground">
