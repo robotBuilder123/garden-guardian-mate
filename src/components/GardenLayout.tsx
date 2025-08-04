@@ -139,6 +139,11 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
   const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
   const [isDraggingOut, setIsDraggingOut] = useState(false);
 
+  // Resize state for beds
+  const [resizingBedId, setResizingBedId] = useState<string | null>(null);
+  const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
+  const [originalBedSize, setOriginalBedSize] = useState({ width: 0, height: 0 });
+
   // Save garden data to localStorage whenever state changes
   useEffect(() => {
     try {
@@ -352,6 +357,53 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     } catch (error) {
       console.error('Error parsing drag data:', error);
     }
+  };
+
+  // Resize handlers
+  const handleResizeStart = (bedId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const bed = beds.find(b => b.id === bedId);
+    if (!bed) return;
+    
+    setResizingBedId(bedId);
+    setResizeStartPos({ x: e.clientX, y: e.clientY });
+    setOriginalBedSize({ width: bed.width, height: bed.height });
+    
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', handleResizeEnd);
+  };
+
+  const handleResize = (e: MouseEvent) => {
+    if (!resizingBedId) return;
+    
+    const deltaX = (e.clientX - resizeStartPos.x) / 60; // Convert to grid units
+    const deltaY = (e.clientY - resizeStartPos.y) / 60;
+    
+    const newWidth = Math.max(1, Math.round(originalBedSize.width + deltaX));
+    const newHeight = Math.max(1, Math.round(originalBedSize.height + deltaY));
+    
+    // Ensure bed doesn't exceed garden boundaries
+    const bed = beds.find(b => b.id === resizingBedId);
+    if (bed) {
+      const maxWidth = Math.max(1, gardenWidth - bed.x);
+      const maxHeight = Math.max(1, gardenHeight - bed.y);
+      const clampedWidth = Math.min(newWidth, maxWidth);
+      const clampedHeight = Math.min(newHeight, maxHeight);
+      
+      setBeds(prev => prev.map(b => 
+        b.id === resizingBedId 
+          ? { ...b, width: clampedWidth, height: clampedHeight }
+          : b
+      ));
+    }
+  };
+
+  const handleResizeEnd = () => {
+    setResizingBedId(null);
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', handleResizeEnd);
   };
 
   const getBedTypeIcon = (type: string) => {
@@ -947,6 +999,16 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                     <div className="text-xs text-muted-foreground mb-2">
                       {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
                     </div>
+                    
+                    {/* Resize Handle */}
+                    <div
+                      className="absolute bottom-0 right-0 w-4 h-4 bg-gray-400 hover:bg-gray-600 cursor-se-resize opacity-50 hover:opacity-100 transition-opacity"
+                      style={{
+                        clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)'
+                      }}
+                      onMouseDown={(e) => handleResizeStart(bed.id, e)}
+                      title="Drag to resize bed"
+                    />
                     
                        {bedPlants.map(({ plant, x, y }) => (
                          <div
