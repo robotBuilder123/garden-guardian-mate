@@ -96,6 +96,18 @@ const Index = () => {
     });
   };
 
+  const updatePlant = (plantId: string, updates: Partial<Plant>) => {
+    setPlants(prev => prev.map(plant => 
+      plant.id === plantId 
+        ? { ...plant, ...updates }
+        : plant
+    ));
+    toast({
+      title: "Plant updated!",
+      description: "Plant information has been saved.",
+    });
+  };
+
   const editPlant = (plant: Plant) => {
     // For now, just show a toast - can implement edit dialog later
     toast({
@@ -276,7 +288,7 @@ const Index = () => {
           </TabsContent>
           
           <TabsContent value="layout" className="mt-6">
-            <GardenLayout plants={plants} />
+            <GardenLayout plants={plants} onUpdatePlant={updatePlant} />
           </TabsContent>
         </Tabs>
       </div>

@@ -11,6 +11,7 @@ import { MapPin, Move, Settings } from "lucide-react";
 
 interface GardenLayoutProps {
   plants: Plant[];
+  onUpdatePlant?: (plantId: string, updates: Partial<Plant>) => void;
 }
 
 interface PlantPosition {
@@ -20,7 +21,7 @@ interface PlantPosition {
   y: number;
 }
 
-export const GardenLayout = ({ plants }: GardenLayoutProps) => {
+export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
   const [beds, setBeds] = useState<GardenBed[]>([
     {
       id: "bed-1",
@@ -51,6 +52,12 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
   const [gardenWidth, setGardenWidth] = useState(10); // meters
   const [gardenHeight, setGardenHeight] = useState(8); // meters
   const [showBoundaries, setShowBoundaries] = useState(true);
+  
+  // Editing state
+  const [editingBedId, setEditingBedId] = useState<string | null>(null);
+  const [editingPlantId, setEditingPlantId] = useState<string | null>(null);
+  const [editingBedName, setEditingBedName] = useState("");
+  const [editingPlantName, setEditingPlantName] = useState("");
 
   const addBed = (newBed: Omit<GardenBed, 'id'>) => {
     const bed: GardenBed = {
@@ -79,6 +86,36 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
         ? { ...bed, x: Math.max(0, newX), y: Math.max(0, newY) }
         : bed
     ));
+  };
+
+  const startEditingBed = (bedId: string, currentName: string) => {
+    setEditingBedId(bedId);
+    setEditingBedName(currentName);
+  };
+
+  const saveBedName = () => {
+    if (editingBedId && editingBedName.trim()) {
+      setBeds(prev => prev.map(bed => 
+        bed.id === editingBedId 
+          ? { ...bed, name: editingBedName.trim() }
+          : bed
+      ));
+    }
+    setEditingBedId(null);
+    setEditingBedName("");
+  };
+
+  const startEditingPlant = (plantId: string, currentName: string) => {
+    setEditingPlantId(plantId);
+    setEditingPlantName(currentName);
+  };
+
+  const savePlantName = () => {
+    if (editingPlantId && editingPlantName.trim() && onUpdatePlant) {
+      onUpdatePlant(editingPlantId, { name: editingPlantName.trim() });
+    }
+    setEditingPlantId(null);
+    setEditingPlantName("");
   };
 
   const unplacedPlants = plants.filter(plant => 
@@ -174,7 +211,7 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                     <Badge
                       key={plant.id}
                       variant="outline"
-                      className="cursor-move p-2 hover:bg-primary/10"
+                      className="cursor-move p-2 hover:bg-primary/10 flex items-center gap-1"
                       draggable
                       onDragStart={(e) => {
                         console.log('Starting plant drag:', plant.id);
@@ -188,7 +225,30 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                         setDraggedPlant(null);
                       }}
                     >
-                      {plant.name} ({plant.spaceRequired}m²)
+                      {editingPlantId === plant.id ? (
+                        <Input
+                          value={editingPlantName}
+                          onChange={(e) => setEditingPlantName(e.target.value)}
+                          onBlur={savePlantName}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') savePlantName();
+                            if (e.key === 'Escape') {
+                              setEditingPlantId(null);
+                              setEditingPlantName("");
+                            }
+                          }}
+                          className="h-5 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1 min-w-20"
+                          autoFocus
+                        />
+                      ) : (
+                        <span 
+                          className="cursor-pointer"
+                          onClick={() => startEditingPlant(plant.id, plant.name)}
+                        >
+                          {plant.name}
+                        </span>
+                      )}
+                      <span className="text-xs opacity-70">({plant.spaceRequired}m²)</span>
                     </Badge>
                   ))}
                 </div>
@@ -321,37 +381,78 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                       }
                     }}
                   >
-                    <div className="text-xs font-medium mb-1">
-                      {getBedTypeIcon(bed.type)} {bed.name}
+                    <div className="text-xs font-medium mb-1 flex items-center gap-1">
+                      {getBedTypeIcon(bed.type)}
+                      {editingBedId === bed.id ? (
+                        <Input
+                          value={editingBedName}
+                          onChange={(e) => setEditingBedName(e.target.value)}
+                          onBlur={saveBedName}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveBedName();
+                            if (e.key === 'Escape') {
+                              setEditingBedId(null);
+                              setEditingBedName("");
+                            }
+                          }}
+                          className="h-4 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1"
+                          autoFocus
+                        />
+                      ) : (
+                        <span 
+                          className="cursor-pointer hover:underline"
+                          onClick={() => startEditingBed(bed.id, bed.name)}
+                        >
+                          {bed.name}
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground mb-2">
                       {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
                     </div>
                     
-                    {bedPlants.map(({ plant, x, y }) => (
-                      <div
-                        key={plant.id}
-                        className="absolute bg-green-600 text-white text-xs p-1 rounded shadow-sm cursor-move"
-                        style={{
-                          left: `${x * 100}%`,
-                          top: `${y * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          minWidth: '40px',
-                          textAlign: 'center'
-                        }}
-                        draggable
-                        onDragStart={(e) => {
-                          setDraggedPlant(plant.id);
-                          e.dataTransfer.setData('text/plain', plant.id);
-                          e.dataTransfer.setData('application/plant-id', plant.id);
-                        }}
-                        onDragEnd={() => {
-                          setDraggedPlant(null);
-                        }}
-                      >
-                        {plant.name}
-                      </div>
-                    ))}
+                     {bedPlants.map(({ plant, x, y }) => (
+                       <div
+                         key={plant.id}
+                         className="absolute bg-green-600 text-white text-xs p-1 rounded shadow-sm cursor-move"
+                         style={{
+                           left: `${x * 100}%`,
+                           top: `${y * 100}%`,
+                           transform: 'translate(-50%, -50%)',
+                           minWidth: '40px',
+                           textAlign: 'center'
+                         }}
+                         draggable
+                         onDragStart={(e) => {
+                           setDraggedPlant(plant.id);
+                           e.dataTransfer.setData('text/plain', plant.id);
+                           e.dataTransfer.setData('application/plant-id', plant.id);
+                         }}
+                         onDragEnd={() => {
+                           setDraggedPlant(null);
+                         }}
+                         onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
+                       >
+                         {editingPlantId === plant.id ? (
+                           <Input
+                             value={editingPlantName}
+                             onChange={(e) => setEditingPlantName(e.target.value)}
+                             onBlur={savePlantName}
+                             onKeyDown={(e) => {
+                               if (e.key === 'Enter') savePlantName();
+                               if (e.key === 'Escape') {
+                                 setEditingPlantId(null);
+                                 setEditingPlantName("");
+                               }
+                             }}
+                             className="h-4 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1 text-black"
+                             autoFocus
+                           />
+                         ) : (
+                           plant.name
+                         )}
+                       </div>
+                     ))}
                   </div>
                 );
               })}
