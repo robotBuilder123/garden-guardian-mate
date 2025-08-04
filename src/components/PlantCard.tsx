@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Droplets, Scissors, Calendar, MoreVertical, Scale } from "lucide-react";
+import { Droplets, Scissors, Calendar, MoreVertical, Scale, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Plant {
@@ -15,6 +15,7 @@ export interface Plant {
   location: string;
   totalHarvest: number; // in kg
   lastHarvest?: string;
+  spaceRequired: number; // in sqm
 }
 
 interface PlantCardProps {
@@ -96,6 +97,16 @@ export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit }: Pl
             </div>
             <span className="font-medium text-foreground">
               {plant.totalHarvest.toFixed(1)} kg
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Square className="h-4 w-4" />
+              <span>Space Required</span>
+            </div>
+            <span className="font-medium text-foreground">
+              {plant.spaceRequired} m²
             </span>
           </div>
         </div>

@@ -1,284 +1,214 @@
-import React, { useState, useRef } from 'react';
-import { Plant } from './PlantCard';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Leaf, TreePine, Flower2, Grid3X3 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Plant } from "./PlantCard";
+import { GardenBedManager, GardenBed } from "./GardenBedManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Move } from "lucide-react";
+
+interface GardenLayoutProps {
+  plants: Plant[];
+}
 
 interface PlantPosition {
-  id: string;
+  plantId: string;
+  bedId: string;
   x: number;
   y: number;
 }
 
-interface GardenLayoutProps {
-  plants: Plant[];
-  onUpdatePlantPosition?: (plantId: string, x: number, y: number) => void;
-}
-
-const getPlantIcon = (type: string) => {
-  switch (type.toLowerCase()) {
-    case 'vegetable':
-      return Leaf;
-    case 'tree':
-    case 'fruit':
-      return TreePine;
-    case 'flower':
-      return Flower2;
-    default:
-      return Leaf;
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'healthy':
-      return 'bg-healthy';
-    case 'needs-care':
-      return 'bg-needs-care';
-    case 'critical':
-      return 'bg-critical';
-    default:
-      return 'bg-muted';
-  }
-};
-
-export const GardenLayout: React.FC<GardenLayoutProps> = ({ 
-  plants, 
-  onUpdatePlantPosition 
-}) => {
-  const { toast } = useToast();
-  const [plantPositions, setPlantPositions] = useState<PlantPosition[]>([]);
-  const [draggedPlant, setDraggedPlant] = useState<Plant | null>(null);
-  const [showGrid, setShowGrid] = useState(true);
-  const gardenRef = useRef<HTMLDivElement>(null);
-
-  const GRID_SIZE = 40;
-  const GARDEN_WIDTH = 800;
-  const GARDEN_HEIGHT = 600;
-
-  const handleDragStart = (e: React.DragEvent, plant: Plant) => {
-    setDraggedPlant(plant);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!draggedPlant || !gardenRef.current) return;
-
-    const rect = gardenRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Snap to grid
-    const snappedX = showGrid ? Math.round(x / GRID_SIZE) * GRID_SIZE : x;
-    const snappedY = showGrid ? Math.round(y / GRID_SIZE) * GRID_SIZE : y;
-
-    // Check bounds
-    if (snappedX < 0 || snappedY < 0 || 
-        snappedX > GARDEN_WIDTH - 60 || snappedY > GARDEN_HEIGHT - 60) {
-      toast({
-        title: "Out of bounds",
-        description: "Please place the plant within the garden area.",
-        variant: "destructive"
-      });
-      return;
+export const GardenLayout = ({ plants }: GardenLayoutProps) => {
+  const [beds, setBeds] = useState<GardenBed[]>([
+    {
+      id: "bed-1",
+      name: "Main Vegetable Bed",
+      width: 3,
+      height: 2,
+      x: 1,
+      y: 1,
+      type: 'raised'
+    },
+    {
+      id: "bed-2", 
+      name: "Herb Garden",
+      width: 1,
+      height: 1,
+      x: 5,
+      y: 1,
+      type: 'container'
     }
+  ]);
 
-    // Update or add position
+  const [plantPositions, setPlantPositions] = useState<PlantPosition[]>([]);
+  const [draggedPlant, setDraggedPlant] = useState<string | null>(null);
+
+  const addBed = (newBed: Omit<GardenBed, 'id'>) => {
+    const bed: GardenBed = {
+      ...newBed,
+      id: `bed-${Date.now()}`,
+    };
+    setBeds(prev => [...prev, bed]);
+  };
+
+  const removeBed = (bedId: string) => {
+    setBeds(prev => prev.filter(bed => bed.id !== bedId));
+    // Remove plants from deleted bed
+    setPlantPositions(prev => prev.filter(pos => pos.bedId !== bedId));
+  };
+
+  const handlePlantDrop = (plantId: string, bedId: string, x: number, y: number) => {
     setPlantPositions(prev => {
-      const existing = prev.findIndex(p => p.id === draggedPlant.id);
-      const newPosition = { id: draggedPlant.id, x: snappedX, y: snappedY };
-      
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = newPosition;
-        return updated;
-      } else {
-        return [...prev, newPosition];
-      }
-    });
-
-    onUpdatePlantPosition?.(draggedPlant.id, snappedX, snappedY);
-    setDraggedPlant(null);
-
-    toast({
-      title: "Plant placed!",
-      description: `${draggedPlant.name} has been positioned in your garden.`,
+      const filtered = prev.filter(pos => pos.plantId !== plantId);
+      return [...filtered, { plantId, bedId, x, y }];
     });
   };
 
-  const getPlantPosition = (plantId: string) => {
-    return plantPositions.find(p => p.id === plantId);
-  };
+  const unplacedPlants = plants.filter(plant => 
+    !plantPositions.some(pos => pos.plantId === plant.id)
+  );
 
-  const unplacedPlants = plants.filter(plant => !getPlantPosition(plant.id));
-  const placedPlants = plants.filter(plant => getPlantPosition(plant.id));
+  const getBedTypeIcon = (type: string) => {
+    switch (type) {
+      case 'raised': return '🌱';
+      case 'ground': return '🌍';
+      case 'container': return '🪴';
+      default: return '🌿';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-semibold text-foreground">Garden Layout</h2>
-          <Badge variant="outline" className="gap-1">
-            <Leaf className="h-3 w-3" />
-            {placedPlants.length} of {plants.length} placed
-          </Badge>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowGrid(!showGrid)}
-          className="gap-2"
-        >
-          <Grid3X3 className="h-4 w-4" />
-          {showGrid ? 'Hide Grid' : 'Show Grid'}
-        </Button>
-      </div>
-
-      <div className="grid lg:grid-cols-4 gap-6">
-        {/* Plant Palette */}
-        <div className="lg:col-span-1">
-          <h3 className="text-lg font-medium text-foreground mb-4">Available Plants</h3>
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {unplacedPlants.map((plant) => {
-              const IconComponent = getPlantIcon(plant.type);
-              return (
-                <div
-                  key={plant.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, plant)}
-                  className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg cursor-move hover:bg-accent transition-colors"
-                >
-                  <div className={`p-2 rounded-full ${getStatusColor(plant.status)}/20`}>
-                    <IconComponent className={`h-4 w-4 text-${plant.status === 'healthy' ? 'healthy' : plant.status === 'needs-care' ? 'needs-care' : 'critical'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{plant.name}</p>
-                    <p className="text-xs text-muted-foreground">{plant.type}</p>
-                  </div>
-                  <div className={`w-2 h-2 rounded-full ${getStatusColor(plant.status)}`} />
-                </div>
-              );
-            })}
-            {unplacedPlants.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Leaf className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">All plants have been placed!</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Garden Canvas */}
-        <div className="lg:col-span-3">
-          <h3 className="text-lg font-medium text-foreground mb-4">Garden Map</h3>
-          <div className="relative border-2 border-dashed border-border rounded-lg overflow-hidden">
-            <div
-              ref={gardenRef}
-              className="relative bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20"
-              style={{ width: GARDEN_WIDTH, height: GARDEN_HEIGHT }}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              {/* Grid */}
-              {showGrid && (
-                <svg
-                  className="absolute inset-0 pointer-events-none opacity-30"
-                  width={GARDEN_WIDTH}
-                  height={GARDEN_HEIGHT}
-                >
-                  <defs>
-                    <pattern
-                      id="grid"
-                      width={GRID_SIZE}
-                      height={GRID_SIZE}
-                      patternUnits="userSpaceOnUse"
+      <Tabs defaultValue="beds" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="beds">Manage Beds</TabsTrigger>
+          <TabsTrigger value="layout">Garden Layout</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="beds">
+          <GardenBedManager
+            beds={beds}
+            plants={plants}
+            onAddBed={addBed}
+            onRemoveBed={removeBed}
+            onPlantDrop={handlePlantDrop}
+          />
+        </TabsContent>
+        
+        <TabsContent value="layout" className="space-y-6">
+          {/* Unplaced Plants */}
+          {unplacedPlants.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Move className="h-4 w-4" />
+                  Unplaced Plants
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {unplacedPlants.map(plant => (
+                    <Badge
+                      key={plant.id}
+                      variant="outline"
+                      className="cursor-move p-2 hover:bg-primary/10"
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedPlant(plant.id);
+                        e.dataTransfer.setData('text/plain', plant.id);
+                      }}
                     >
-                      <path
-                        d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1"
-                      />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-              )}
-
-              {/* Drop zone instructions */}
-              {placedPlants.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <Leaf className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-lg font-medium">Drag plants here to place them</p>
-                    <p className="text-sm">Organize your garden layout visually</p>
-                  </div>
+                      {plant.name} ({plant.spaceRequired}m²)
+                    </Badge>
+                  ))}
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Placed Plants */}
-              {placedPlants.map((plant) => {
-                const position = getPlantPosition(plant.id);
-                if (!position) return null;
+          {/* Garden Grid */}
+          <div className="relative bg-green-50 rounded-lg p-6 min-h-96 border-2 border-green-200">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
+            
+            <div className="relative">
+              <h4 className="font-medium mb-4 flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Garden Layout
+              </h4>
+              
+              {beds.map(bed => {
+                const bedPlants = plantPositions
+                  .filter(pos => pos.bedId === bed.id)
+                  .map(pos => ({ 
+                    ...pos, 
+                    plant: plants.find(p => p.id === pos.plantId)! 
+                  }))
+                  .filter(item => item.plant);
 
-                const IconComponent = getPlantIcon(plant.type);
+                const totalUsedSpace = bedPlants.reduce((sum, item) => sum + item.plant.spaceRequired, 0);
+                const totalSpace = bed.width * bed.height;
+                const isOvercrowded = totalUsedSpace > totalSpace;
+
                 return (
                   <div
-                    key={plant.id}
-                    className="absolute cursor-move group"
+                    key={bed.id}
+                    className={`absolute border-2 rounded-lg p-3 ${
+                      bed.type === 'raised' ? 'bg-amber-100 border-amber-400' :
+                      bed.type === 'ground' ? 'bg-green-100 border-green-400' :
+                      'bg-blue-100 border-blue-400'
+                    } ${isOvercrowded ? 'ring-2 ring-red-400' : ''}`}
                     style={{
-                      left: position.x,
-                      top: position.y,
-                      transform: 'translate(-50%, -50%)'
+                      left: `${bed.x * 60}px`,
+                      top: `${bed.y * 60 + 40}px`,
+                      width: `${bed.width * 60}px`,
+                      height: `${bed.height * 60}px`,
+                      minWidth: '80px',
+                      minHeight: '60px'
                     }}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, plant)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const plantId = e.dataTransfer.getData('text/plain');
+                      if (plantId && draggedPlant) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = (e.clientX - rect.left) / rect.width;
+                        const y = (e.clientY - rect.top) / rect.height;
+                        handlePlantDrop(plantId, bed.id, x, y);
+                        setDraggedPlant(null);
+                      }
+                    }}
                   >
-                    <div className={`relative p-3 rounded-full bg-card border-2 shadow-lg transition-all group-hover:scale-110 ${
-                      plant.status === 'healthy' ? 'border-healthy' : 
-                      plant.status === 'needs-care' ? 'border-needs-care' : 'border-critical'
-                    }`}>
-                      <IconComponent className={`h-6 w-6 ${
-                        plant.status === 'healthy' ? 'text-healthy' : 
-                        plant.status === 'needs-care' ? 'text-needs-care' : 'text-critical'
-                      }`} />
-                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(plant.status)}`} />
+                    <div className="text-xs font-medium mb-1">
+                      {getBedTypeIcon(bed.type)} {bed.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
                     </div>
                     
-                    {/* Plant label on hover */}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-popover text-popover-foreground px-2 py-1 rounded text-xs font-medium shadow-md border whitespace-nowrap">
+                    {bedPlants.map(({ plant, x, y }) => (
+                      <div
+                        key={plant.id}
+                        className="absolute bg-green-600 text-white text-xs p-1 rounded shadow-sm cursor-move"
+                        style={{
+                          left: `${x * 100}%`,
+                          top: `${y * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          minWidth: '40px',
+                          textAlign: 'center'
+                        }}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedPlant(plant.id);
+                          e.dataTransfer.setData('text/plain', plant.id);
+                        }}
+                      >
                         {plant.name}
                       </div>
-                    </div>
+                    ))}
                   </div>
                 );
               })}
-
-              {/* Drag preview */}
-              {draggedPlant && (
-                <div className="absolute pointer-events-none opacity-50 z-10">
-                  <div className="p-3 rounded-full bg-card border-2 border-primary">
-                    <Leaf className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-          
-          <p className="text-xs text-muted-foreground mt-2">
-            Drag plants from the left panel to place them in your garden. 
-            {showGrid && " Plants will snap to the grid for organized placement."}
-          </p>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -29,11 +29,12 @@ export const AddPlantDialog = ({ onAddPlant }: AddPlantDialogProps) => {
     type: "",
     location: "",
     plantedDate: new Date().toISOString().split('T')[0],
+    spaceRequired: 1,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.type || !formData.location) return;
+    if (!formData.name || !formData.type || !formData.location || !formData.spaceRequired) return;
 
     const today = new Date().toISOString();
     onAddPlant({
@@ -49,6 +50,7 @@ export const AddPlantDialog = ({ onAddPlant }: AddPlantDialogProps) => {
       type: "",
       location: "",
       plantedDate: new Date().toISOString().split('T')[0],
+      spaceRequired: 1,
     });
     setOpen(false);
   };
@@ -115,6 +117,20 @@ export const AddPlantDialog = ({ onAddPlant }: AddPlantDialogProps) => {
               type="date"
               value={formData.plantedDate}
               onChange={(e) => setFormData(prev => ({ ...prev, plantedDate: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="spaceRequired">Space Required (m²)</Label>
+            <Input
+              id="spaceRequired"
+              type="number"
+              step="0.1"
+              min="0.1"
+              value={formData.spaceRequired}
+              onChange={(e) => setFormData(prev => ({ ...prev, spaceRequired: Number(e.target.value) }))}
+              placeholder="e.g., 1.5"
               required
             />
           </div>

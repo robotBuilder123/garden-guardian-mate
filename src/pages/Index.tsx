@@ -23,7 +23,8 @@ const Index = () => {
       status: "needs-care",
       location: "Garden Bed A",
       totalHarvest: 2.5,
-      lastHarvest: "2024-07-30"
+      lastHarvest: "2024-07-30",
+      spaceRequired: 1.5
     },
     {
       id: "2",
@@ -34,7 +35,8 @@ const Index = () => {
       lastFertilized: "2024-07-25",
       status: "healthy",
       location: "Herb Planter",
-      totalHarvest: 0.3
+      totalHarvest: 0.3,
+      spaceRequired: 0.5
     }
   ]);
   
