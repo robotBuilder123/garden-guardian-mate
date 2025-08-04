@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlantCard, Plant } from "@/components/PlantCard";
 import { AddPlantDialog } from "@/components/AddPlantDialog";
 import { GardenLayout } from "@/components/GardenLayout";
@@ -13,36 +13,60 @@ import gardenHero from "@/assets/garden-hero.jpg";
 
 const Index = () => {
   const { toast } = useToast();
-  const [plants, setPlants] = useState<Plant[]>([
-    {
-      id: "1",
-      name: "Cherry Tomatoes",
-      type: "Vegetable",
-      plantedDate: "2024-07-15",
-      lastWatered: "2024-08-02",
-      lastFertilized: "2024-07-20",
-      status: "needs-care",
-      location: "Garden Bed A",
-      totalHarvest: 2.5,
-      lastHarvest: "2024-07-30",
-      spaceRequired: 1.5
-    },
-    {
-      id: "2",
-      name: "Basil",
-      type: "Herb",
-      plantedDate: "2024-07-20",
-      lastWatered: "2024-08-04",
-      lastFertilized: "2024-07-25",
-      status: "healthy",
-      location: "Herb Planter",
-      totalHarvest: 0.3,
-      spaceRequired: 0.5
-    }
-  ]);
   
+  // Load plants from localStorage or use default data
+  const loadPlantsFromStorage = (): Plant[] => {
+    try {
+      const savedPlants = localStorage.getItem('garden-plants');
+      if (savedPlants) {
+        return JSON.parse(savedPlants);
+      }
+    } catch (error) {
+      console.error('Error loading plants from storage:', error);
+    }
+    
+    // Default plants if nothing in storage
+    return [
+      {
+        id: "1",
+        name: "Cherry Tomatoes",
+        type: "Vegetable",
+        plantedDate: "2024-07-15",
+        lastWatered: "2024-08-02",
+        lastFertilized: "2024-07-20",
+        status: "needs-care",
+        location: "Garden Bed A",
+        totalHarvest: 2.5,
+        lastHarvest: "2024-07-30",
+        spaceRequired: 1.5
+      },
+      {
+        id: "2",
+        name: "Basil",
+        type: "Herb",
+        plantedDate: "2024-07-20",
+        lastWatered: "2024-08-04",
+        lastFertilized: "2024-07-25",
+        status: "healthy",
+        location: "Herb Planter",
+        totalHarvest: 0.3,
+        spaceRequired: 0.5
+      }
+    ];
+  };
+
+  const [plants, setPlants] = useState<Plant[]>(loadPlantsFromStorage);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Save plants to localStorage whenever plants state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('garden-plants', JSON.stringify(plants));
+    } catch (error) {
+      console.error('Error saving plants to storage:', error);
+    }
+  }, [plants]);
 
   const addPlant = (newPlant: Omit<Plant, 'id'>) => {
     const plant: Plant = {

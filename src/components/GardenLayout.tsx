@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plant } from "./PlantCard";
 import { GardenBedManager, GardenBed } from "./GardenBedManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,42 +22,125 @@ interface PlantPosition {
 }
 
 export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
-  const [beds, setBeds] = useState<GardenBed[]>([
-    {
-      id: "bed-1",
-      name: "Main Vegetable Bed",
-      width: 3,
-      height: 2,
-      x: 1,
-      y: 1,
-      type: 'raised'
-    },
-    {
-      id: "bed-2", 
-      name: "Herb Garden",
-      width: 1,
-      height: 1,
-      x: 5,
-      y: 1,
-      type: 'container'
+  // Load garden data from localStorage
+  const loadGardenDataFromStorage = () => {
+    try {
+      const savedBeds = localStorage.getItem('garden-beds');
+      const savedPositions = localStorage.getItem('garden-plant-positions');
+      const savedSettings = localStorage.getItem('garden-settings');
+      
+      let beds: GardenBed[] = [];
+      let positions: PlantPosition[] = [];
+      let settings = { width: 10, height: 8, showBoundaries: true };
+      
+      if (savedBeds) {
+        beds = JSON.parse(savedBeds) as GardenBed[];
+      } else {
+        // Default beds if nothing in storage
+        beds = [
+          {
+            id: "bed-1",
+            name: "Main Vegetable Bed",
+            width: 3,
+            height: 2,
+            x: 1,
+            y: 1,
+            type: 'raised' as const
+          },
+          {
+            id: "bed-2", 
+            name: "Herb Garden",
+            width: 1,
+            height: 1,
+            x: 5,
+            y: 1,
+            type: 'container' as const
+          }
+        ];
+      }
+      
+      if (savedPositions) {
+        positions = JSON.parse(savedPositions);
+      }
+      
+      if (savedSettings) {
+        settings = JSON.parse(savedSettings);
+      }
+      
+      return { beds, positions, settings };
+    } catch (error) {
+      console.error('Error loading garden data from storage:', error);
+      return {
+        beds: [
+          {
+            id: "bed-1",
+            name: "Main Vegetable Bed",
+            width: 3,
+            height: 2,
+            x: 1,
+            y: 1,
+            type: 'raised' as const
+          },
+          {
+            id: "bed-2", 
+            name: "Herb Garden",
+            width: 1,
+            height: 1,
+            x: 5,
+            y: 1,
+            type: 'container' as const
+          }
+        ] as GardenBed[],
+        positions: [] as PlantPosition[],
+        settings: { width: 10, height: 8, showBoundaries: true }
+      };
     }
-  ]);
+  };
 
-  const [plantPositions, setPlantPositions] = useState<PlantPosition[]>([]);
+  const { beds: initialBeds, positions: initialPositions, settings: initialSettings } = loadGardenDataFromStorage();
+  
+  const [beds, setBeds] = useState<GardenBed[]>(initialBeds);
+  const [plantPositions, setPlantPositions] = useState<PlantPosition[]>(initialPositions);
   const [draggedPlant, setDraggedPlant] = useState<string | null>(null);
   const [draggedBed, setDraggedBed] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
   // Garden boundary settings
-  const [gardenWidth, setGardenWidth] = useState(10); // meters
-  const [gardenHeight, setGardenHeight] = useState(8); // meters
-  const [showBoundaries, setShowBoundaries] = useState(true);
+  const [gardenWidth, setGardenWidth] = useState(initialSettings.width);
+  const [gardenHeight, setGardenHeight] = useState(initialSettings.height);
+  const [showBoundaries, setShowBoundaries] = useState(initialSettings.showBoundaries);
   
   // Editing state
   const [editingBedId, setEditingBedId] = useState<string | null>(null);
   const [editingPlantId, setEditingPlantId] = useState<string | null>(null);
   const [editingBedName, setEditingBedName] = useState("");
   const [editingPlantName, setEditingPlantName] = useState("");
+
+  // Save garden data to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('garden-beds', JSON.stringify(beds));
+    } catch (error) {
+      console.error('Error saving beds to storage:', error);
+    }
+  }, [beds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('garden-plant-positions', JSON.stringify(plantPositions));
+    } catch (error) {
+      console.error('Error saving plant positions to storage:', error);
+    }
+  }, [plantPositions]);
+
+  useEffect(() => {
+    try {
+      const settings = { width: gardenWidth, height: gardenHeight, showBoundaries };
+      localStorage.setItem('garden-settings', JSON.stringify(settings));
+    } catch (error) {
+      console.error('Error saving garden settings to storage:', error);
+    }
+  }, [gardenWidth, gardenHeight, showBoundaries]);
 
   const addBed = (newBed: Omit<GardenBed, 'id'>) => {
     const bed: GardenBed = {
