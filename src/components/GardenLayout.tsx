@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Move, Settings } from "lucide-react";
+import { MapPin, Move, Settings, Square } from "lucide-react";
 
 interface GardenLayoutProps {
   plants: Plant[];
@@ -62,7 +62,9 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
   const addBed = (newBed: Omit<GardenBed, 'id'>) => {
     const bed: GardenBed = {
       ...newBed,
-      id: `bed-${Date.now()}`,
+      id: `bed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      x: -1, // Unplaced beds start at -1, -1
+      y: -1,
     };
     setBeds(prev => [...prev, bed]);
   };
@@ -121,6 +123,9 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
   const unplacedPlants = plants.filter(plant => 
     !plantPositions.some(pos => pos.plantId === plant.id)
   );
+
+  const unplacedBeds = beds.filter(bed => bed.x === -1 && bed.y === -1);
+  const placedBeds = beds.filter(bed => bed.x !== -1 && bed.y !== -1);
 
   const getBedTypeIcon = (type: string) => {
     switch (type) {
@@ -256,6 +261,70 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
             </Card>
           )}
 
+          {/* Unplaced Garden Beds */}
+          {unplacedBeds.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Square className="h-4 w-4" />
+                  Unplaced Garden Beds
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {unplacedBeds.map(bed => (
+                    <div
+                      key={bed.id}
+                      className={`cursor-move p-3 rounded-lg border-2 hover:opacity-80 ${
+                        bed.type === 'raised' ? 'bg-amber-100 border-amber-400' :
+                        bed.type === 'ground' ? 'bg-green-100 border-green-400' :
+                        'bg-blue-100 border-blue-400'
+                      } ${draggedBed === bed.id ? 'opacity-50' : ''}`}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedBed(bed.id);
+                        setDragOffset({ x: 0, y: 0 });
+                        e.dataTransfer.setData('text/plain', `bed-${bed.id}`);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragEnd={() => {
+                        setDraggedBed(null);
+                      }}
+                    >
+                      <div className="text-xs font-medium mb-1 flex items-center gap-1">
+                        {getBedTypeIcon(bed.type)}
+                        {editingBedId === bed.id ? (
+                          <Input
+                            value={editingBedName}
+                            onChange={(e) => setEditingBedName(e.target.value)}
+                            onBlur={saveBedName}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveBedName();
+                              if (e.key === 'Escape') {
+                                setEditingBedId(null);
+                                setEditingBedName("");
+                              }
+                            }}
+                            className="h-4 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1"
+                            autoFocus
+                          />
+                        ) : (
+                          <span 
+                            className="cursor-pointer hover:underline"
+                            onClick={() => startEditingBed(bed.id, bed.name)}
+                          >
+                            {bed.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {bed.width}m × {bed.height}m ({(bed.width * bed.height).toFixed(1)}m²)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Garden Grid */}
           <div 
             className="relative bg-green-50 rounded-lg p-6 min-h-96 border-2 border-green-200"
@@ -310,7 +379,7 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                 Garden Layout
               </h4>
               
-              {beds.map(bed => {
+              {placedBeds.map(bed => {
                 const bedPlants = plantPositions
                   .filter(pos => pos.bedId === bed.id)
                   .map(pos => ({ 
