@@ -146,6 +146,9 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
   const [resizeType, setResizeType] = useState<'corner' | 'right' | 'bottom' | 'left' | 'top' | null>(null);
   const [originalBedPos, setOriginalBedPos] = useState({ x: 0, y: 0 });
 
+  // Plant action menu state
+  const [plantActionMenu, setPlantActionMenu] = useState<{ plantId: string; x: number; y: number } | null>(null);
+
   // Save garden data to localStorage whenever state changes
   useEffect(() => {
     try {
@@ -429,6 +432,47 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
       default: return '🌿';
     }
   };
+
+  // Plant action handlers
+  const handlePlantClick = (plant: Plant, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!draggedPlantId && !editingPlantId) {
+      // Show action menu at click position
+      setPlantActionMenu({
+        plantId: plant.id,
+        x: e.clientX,
+        y: e.clientY
+      });
+    }
+  };
+
+  const handlePlantHarvest = (plantId: string) => {
+    if (onHarvest) {
+      const amount = prompt("Enter harvest amount (kg):");
+      if (amount && !isNaN(Number(amount))) {
+        onHarvest(plantId, Number(amount));
+      }
+    }
+    setPlantActionMenu(null);
+  };
+
+  const handlePlantUnplace = (plantId: string) => {
+    // Remove plant from its current position (move back to unplaced)
+    setPlantPositions(prev => prev.filter(pos => pos.plantId !== plantId));
+    setPlantActionMenu(null);
+  };
+
+  // Close plant action menu when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (plantActionMenu) {
+        setPlantActionMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [plantActionMenu]);
 
   return (
     <div className="space-y-6">
@@ -1052,20 +1096,8 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                               console.log('Plant drag end event triggered');
                               handlePlantDragEnd();
                             }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!draggedPlantId) { // Only handle click if not dragging
-                                if (onHarvest) {
-                                  const amount = prompt("Enter harvest amount (kg):");
-                                  if (amount && !isNaN(Number(amount))) {
-                                    onHarvest(plant.id, Number(amount));
-                                  }
-                                } else {
-                                  handlePlantSelect(plant.id);
-                                }
-                              }
-                            }}
-                            onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
+                             onClick={(e) => handlePlantClick(plant, e)}
+                             onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
                        >
                          {editingPlantId === plant.id ? (
                            <Input
@@ -1093,6 +1125,33 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                 );
               })}
             </div>
+
+            {/* Plant Action Menu */}
+            {plantActionMenu && (
+              <div
+                className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-32"
+                style={{
+                  left: `${plantActionMenu.x}px`,
+                  top: `${plantActionMenu.y}px`,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="py-1">
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
+                    onClick={() => handlePlantHarvest(plantActionMenu.plantId)}
+                  >
+                    🌾 Harvest
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
+                    onClick={() => handlePlantUnplace(plantActionMenu.plantId)}
+                  >
+                    ↩️ Unplace
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
