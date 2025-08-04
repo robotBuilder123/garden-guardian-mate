@@ -173,14 +173,14 @@ const Index = () => {
 
     setPlants(prev => prev.map(plant => 
       plant.id === plantId 
-        ? { ...plant, comments: [...plant.comments, newComment] }
+        ? { ...plant, comments: [...(plant.comments || []), newComment] }
         : plant
     ));
 
     // Update the dialog plant to reflect the new comment
     setCommentsDialogPlant(prev => 
       prev?.id === plantId 
-        ? { ...prev, comments: [...prev.comments, newComment] }
+        ? { ...prev, comments: [...(prev.comments || []), newComment] }
         : prev
     );
 

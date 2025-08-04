@@ -60,17 +60,17 @@ export const PlantCommentsDialog = ({ plant, open, onOpenChange, onAddComment }:
           {/* Comments list */}
           <div className="space-y-2">
             <h4 className="font-medium text-sm text-muted-foreground">
-              Comments ({plant.comments.length})
+              Comments ({plant.comments?.length || 0})
             </h4>
             
-            {plant.comments.length === 0 ? (
+            {(!plant.comments || plant.comments.length === 0) ? (
               <p className="text-muted-foreground text-sm text-center py-8">
                 No comments yet. Add the first one above!
               </p>
             ) : (
               <ScrollArea className="h-[300px] w-full">
                 <div className="space-y-3 pr-4">
-                  {plant.comments
+                  {(plant.comments || [])
                     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                     .map((comment) => (
                       <div key={comment.id} className="border rounded-lg p-3 bg-muted/30">

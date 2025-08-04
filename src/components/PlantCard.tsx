@@ -71,9 +71,9 @@ export const PlantCard = ({ plant, onWater, onFertilize, onHarvest, onEdit, onDe
               className="opacity-0 group-hover:opacity-100 transition-opacity relative"
             >
               <MessageSquare className="h-4 w-4" />
-              {plant.comments.length > 0 && (
+              {(plant.comments?.length || 0) > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {plant.comments.length}
+                  {plant.comments?.length || 0}
                 </span>
               )}
             </Button>
