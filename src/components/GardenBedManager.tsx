@@ -373,7 +373,7 @@ export const GardenBedManager = ({ beds, plants, plantPositions, onAddBed, onRem
                   <div className="flex items-center justify-between text-xs">
                     <span>Space Used:</span>
                     <span className={utilization.percentage > 100 ? "text-red-600 font-medium" : ""}>
-                      {utilization.usedSpace.toFixed(1)} / {utilization.totalSpace.toFixed(1)} m²
+                      {utilization.usedSpace.toFixed(1)} / {utilization.totalSpace.toFixed(1)} m² ({utilization.percentage.toFixed(0)}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
