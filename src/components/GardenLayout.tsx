@@ -443,22 +443,33 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                 <h4 className="font-medium mb-3 flex items-center gap-2">
                   <Square className="h-4 w-4" />
                   Unplaced Garden Beds
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (Drag beds to place them in your garden)
+                  </span>
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {unplacedBeds.map(bed => (
                     <div
                       key={bed.id}
-                      className={`cursor-move p-3 rounded-lg border-2 hover:opacity-80 ${
-                        bed.type === 'raised' ? 'bg-amber-100 border-amber-400' :
-                        bed.type === 'ground' ? 'bg-green-100 border-green-400' :
-                        'bg-blue-100 border-blue-400'
-                      } ${draggedBed === bed.id ? 'opacity-50' : ''}`}
+                      className={`relative cursor-grab active:cursor-grabbing p-3 rounded-lg border-2 hover:shadow-lg transition-all duration-200 ${
+                        bed.type === 'raised' ? 'bg-amber-100 border-amber-400 hover:bg-amber-150' :
+                        bed.type === 'ground' ? 'bg-green-100 border-green-400 hover:bg-green-150' :
+                        'bg-blue-100 border-blue-400 hover:bg-blue-150'
+                      } ${draggedBed === bed.id ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
                       draggable
                       onDragStart={(e) => {
                         setDraggedBed(bed.id);
                         setDragOffset({ x: 0, y: 0 });
                         e.dataTransfer.setData('text/plain', `bed-${bed.id}`);
                         e.dataTransfer.effectAllowed = 'move';
+                        
+                        // Create drag image with better styling
+                        const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+                        dragImage.style.transform = 'rotate(5deg)';
+                        dragImage.style.opacity = '0.8';
+                        document.body.appendChild(dragImage);
+                        e.dataTransfer.setDragImage(dragImage, 50, 25);
+                        setTimeout(() => document.body.removeChild(dragImage), 0);
                       }}
                       onDragEnd={() => {
                         setDraggedBed(null);
@@ -502,10 +513,15 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
 
           {/* Garden Grid */}
           <div 
-            className="relative bg-green-50 rounded-lg p-6 min-h-96 border-2 border-green-200"
+            className={`relative bg-green-50 rounded-lg p-6 min-h-96 border-2 transition-all duration-200 ${
+              draggedBed ? 'border-green-400 bg-green-100 border-dashed' : 'border-green-200'
+            }`}
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
             }}
             onDrop={(e) => {
               e.preventDefault();
@@ -518,13 +534,52 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
               if (data.startsWith('bed-') && draggedBed) {
                 const bedId = data.replace('bed-', '');
                 const rect = e.currentTarget.getBoundingClientRect();
-                const newX = Math.round((e.clientX - rect.left - dragOffset.x) / 60);
-                const newY = Math.round((e.clientY - rect.top - dragOffset.y - 40) / 60);
-                handleBedDrag(bedId, newX, newY);
+                // Improved snap-to-grid calculation with proper offset
+                const rawX = (e.clientX - rect.left - 40) / 60; // Account for padding
+                const rawY = (e.clientY - rect.top - 80) / 60; // Account for header and padding
+                const newX = Math.max(0, Math.round(rawX));
+                const newY = Math.max(0, Math.round(rawY));
+                
+                // Ensure bed fits within garden boundaries
+                const bed = beds.find(b => b.id === bedId);
+                if (bed) {
+                  const maxX = Math.max(0, gardenWidth - bed.width);
+                  const maxY = Math.max(0, gardenHeight - bed.height);
+                  const clampedX = Math.min(newX, maxX);
+                  const clampedY = Math.min(newY, maxY);
+                  handleBedDrag(bedId, clampedX, clampedY);
+                }
                 setDraggedBed(null);
               }
             }}
           >
+            {/* Snap-to-grid overlay when dragging */}
+            {draggedBed && (
+              <div
+                className="absolute pointer-events-none z-10"
+                style={{
+                  left: '40px',
+                  top: '80px',
+                  width: `${gardenWidth * 60}px`,
+                  height: `${gardenHeight * 60}px`,
+                }}
+              >
+                {/* Grid dots for visual snapping feedback */}
+                {Array.from({ length: gardenWidth + 1 }).map((_, x) =>
+                  Array.from({ length: gardenHeight + 1 }).map((_, y) => (
+                    <div
+                      key={`${x}-${y}`}
+                      className="absolute w-2 h-2 bg-green-500 rounded-full opacity-60 animate-pulse"
+                      style={{
+                        left: `${x * 60 - 4}px`,
+                        top: `${y * 60 - 4}px`,
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+
             {/* Garden Boundaries with Grid */}
             {showBoundaries && (
               <div
@@ -549,10 +604,17 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
             )}
             
             <div className="relative">
-              <h4 className="font-medium mb-4 flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Garden Layout
-              </h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-medium flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Garden Layout
+                </h4>
+                {draggedBed && (
+                  <div className="text-xs text-green-600 font-medium animate-pulse">
+                    Drop bed anywhere in the garden area
+                  </div>
+                )}
+              </div>
               
               {placedBeds.map(bed => {
                 const bedPlants = plantPositions
