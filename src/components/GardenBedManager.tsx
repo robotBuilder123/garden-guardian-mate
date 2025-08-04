@@ -19,9 +19,17 @@ export interface GardenBed {
   type: 'raised' | 'ground' | 'container';
 }
 
+interface PlantPosition {
+  plantId: string;
+  bedId: string;
+  x: number;
+  y: number;
+}
+
 interface GardenBedManagerProps {
   beds: GardenBed[];
   plants: Plant[];
+  plantPositions: PlantPosition[];
   onAddBed: (bed: Omit<GardenBed, 'id'>) => void;
   onRemoveBed: (bedId: string) => void;
   onPlantDrop: (plantId: string, bedId: string, x: number, y: number) => void;
@@ -38,7 +46,7 @@ const bedPresets = [
   { name: "Ground Plot", width: 2, height: 2, type: 'ground' as BedType },
 ];
 
-export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantDrop }: GardenBedManagerProps) => {
+export const GardenBedManager = ({ beds, plants, plantPositions, onAddBed, onRemoveBed, onPlantDrop }: GardenBedManagerProps) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<{
     name: string;
@@ -113,7 +121,10 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
   };
 
   const getPlantsByBed = (bedId: string) => {
-    return plants.filter(plant => plant.location === bedId);
+    const plantPositionsInBed = plantPositions.filter(pos => pos.bedId === bedId);
+    return plantPositionsInBed.map(pos => 
+      plants.find(plant => plant.id === pos.plantId)
+    ).filter(plant => plant !== undefined);
   };
 
   const getBedUtilization = (bed: GardenBed) => {

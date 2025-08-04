@@ -376,6 +376,7 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
           <GardenBedManager
             beds={beds}
             plants={plants}
+            plantPositions={plantPositions}
             onAddBed={addBed}
             onRemoveBed={removeBed}
             onPlantDrop={handlePlantDrop}
