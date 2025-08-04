@@ -221,14 +221,10 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
               }
             }}
           >
-            {/* Grid overlay */}
-            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,_#22c55e_1px,_transparent_1px),_linear-gradient(to_bottom,_#22c55e_1px,_transparent_1px)] bg-[length:60px_60px]" />
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
-            
-            {/* Garden Boundaries */}
+            {/* Garden Boundaries with Grid */}
             {showBoundaries && (
               <div
-                className="absolute border-4 border-dashed border-green-600 bg-green-100/20 rounded-lg"
+                className="absolute border-4 border-dashed border-green-600 bg-green-100/20 rounded-lg overflow-hidden"
                 style={{
                   left: '40px',
                   top: '80px',
@@ -238,6 +234,10 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                   minHeight: '120px'
                 }}
               >
+                {/* Grid overlay inside garden boundaries */}
+                <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,_#22c55e_1px,_transparent_1px),_linear-gradient(to_bottom,_#22c55e_1px,_transparent_1px)] bg-[length:60px_60px]" />
+                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
+                
                 <div className="absolute -top-6 left-0 text-xs font-medium text-green-700">
                   Garden Area: {gardenWidth}m × {gardenHeight}m
                 </div>
