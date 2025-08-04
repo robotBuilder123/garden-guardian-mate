@@ -165,6 +165,8 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
               }
             }}
           >
+            {/* Grid overlay */}
+            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,_#22c55e_1px,_transparent_1px),_linear-gradient(to_bottom,_#22c55e_1px,_transparent_1px)] bg-[length:60px_60px]" />
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
             
             <div className="relative">
