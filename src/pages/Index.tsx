@@ -8,19 +8,32 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Leaf, Droplets, Calendar, Map, Scale, BarChart3 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Search, Leaf, Droplets, Calendar, Map, Scale, BarChart3, Plus, History, Archive } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import gardenHero from "@/assets/garden-hero.jpg";
+
+interface SeasonReport {
+  id: string;
+  seasonName: string;
+  startDate: string;
+  endDate: string;
+  plants: Plant[];
+  totalHarvest: number;
+  createdAt: string;
+}
 
 const Index = () => {
   const { toast } = useToast();
   const [commentsDialogPlant, setCommentsDialogPlant] = useState<Plant | null>(null);
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
+  const [currentSeason, setCurrentSeason] = useState<string>("2024 Season");
+  const [seasonReports, setSeasonReports] = useState<SeasonReport[]>([]);
   
-  // Load plants from localStorage or use default data
+  // Load plants and season data from localStorage
   const loadPlantsFromStorage = (): Plant[] => {
     try {
-      const savedPlants = localStorage.getItem('garden-plants');
+      const savedPlants = localStorage.getItem(`garden-plants-${currentSeason}`);
       if (savedPlants) {
         return JSON.parse(savedPlants);
       }
@@ -60,18 +73,49 @@ const Index = () => {
     ];
   };
 
-  const [plants, setPlants] = useState<Plant[]>(loadPlantsFromStorage);
+  const [plants, setPlants] = useState<Plant[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Load current season and reports on component mount
+  useEffect(() => {
+    try {
+      const savedSeason = localStorage.getItem('current-season');
+      if (savedSeason) {
+        setCurrentSeason(savedSeason);
+      }
+      
+      const savedReports = localStorage.getItem('season-reports');
+      if (savedReports) {
+        setSeasonReports(JSON.parse(savedReports));
+      }
+    } catch (error) {
+      console.error('Error loading season data:', error);
+    }
+  }, []);
+
+  // Load plants when season changes
+  useEffect(() => {
+    setPlants(loadPlantsFromStorage());
+  }, [currentSeason]);
 
   // Save plants to localStorage whenever plants state changes
   useEffect(() => {
     try {
-      localStorage.setItem('garden-plants', JSON.stringify(plants));
+      localStorage.setItem(`garden-plants-${currentSeason}`, JSON.stringify(plants));
     } catch (error) {
       console.error('Error saving plants to storage:', error);
     }
-  }, [plants]);
+  }, [plants, currentSeason]);
+
+  // Save season reports whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('season-reports', JSON.stringify(seasonReports));
+    } catch (error) {
+      console.error('Error saving season reports:', error);
+    }
+  }, [seasonReports]);
 
   const addPlant = (newPlant: Omit<Plant, 'id' | 'totalHarvest' | 'comments'>) => {
     const plant: Plant = {
@@ -190,6 +234,41 @@ const Index = () => {
     });
   };
 
+  const createNewGarden = (seasonName: string) => {
+    // Save current season as a report if it has plants
+    if (plants.length > 0) {
+      const currentReport: SeasonReport = {
+        id: Date.now().toString(),
+        seasonName: currentSeason,
+        startDate: plants.reduce((earliest, plant) => 
+          plant.plantedDate < earliest ? plant.plantedDate : earliest, 
+          plants[0]?.plantedDate || new Date().toISOString()
+        ),
+        endDate: new Date().toISOString(),
+        plants: [...plants],
+        totalHarvest: plants.reduce((sum, plant) => sum + plant.totalHarvest, 0),
+        createdAt: new Date().toISOString()
+      };
+      
+      setSeasonReports(prev => [...prev, currentReport]);
+      
+      toast({
+        title: "Season archived!",
+        description: `${currentSeason} has been saved to your harvest history.`,
+      });
+    }
+
+    // Clear current plants and start new season
+    setCurrentSeason(seasonName);
+    localStorage.setItem('current-season', seasonName);
+    setPlants([]);
+    
+    toast({
+      title: "New garden started!",
+      description: `Welcome to your ${seasonName}!`,
+    });
+  };
+
   const filteredPlants = plants.filter(plant => {
     const matchesSearch = plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plant.type.toLowerCase().includes(searchTerm.toLowerCase());
@@ -220,7 +299,8 @@ const Index = () => {
               <Leaf className="h-8 w-8" />
               <h1 className="text-4xl font-bold">My Garden</h1>
             </div>
-            <p className="text-lg opacity-90">Track and care for your plants</p>
+            <p className="text-lg opacity-90">{currentSeason}</p>
+            <p className="text-sm opacity-75">Track and care for your plants</p>
           </div>
         </div>
       </div>
@@ -239,7 +319,37 @@ const Index = () => {
               />
             </div>
           </div>
-          <AddPlantDialog onAddPlant={addPlant} />
+          <div className="flex gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  New Season
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Start New Garden Season</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will save your current season's harvest data and start fresh with a new garden. 
+                    Your current plants and harvest data will be archived.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => {
+                    const newSeasonName = prompt("Enter name for new season:", `${new Date().getFullYear()} Season`);
+                    if (newSeasonName?.trim()) {
+                      createNewGarden(newSeasonName.trim());
+                    }
+                  }}>
+                    Start New Season
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AddPlantDialog onAddPlant={addPlant} />
+          </div>
         </div>
 
         {/* Status Filters */}
@@ -318,7 +428,7 @@ const Index = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="cards" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="cards" className="gap-2">
               <Leaf className="h-4 w-4" />
               Plant Cards
@@ -330,6 +440,10 @@ const Index = () => {
             <TabsTrigger value="harvest" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Harvest Tracker
+            </TabsTrigger>
+            <TabsTrigger value="history" className="gap-2">
+              <History className="h-4 w-4" />
+              Season History
             </TabsTrigger>
           </TabsList>
           
@@ -499,6 +613,142 @@ const Index = () => {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-6">
+            <div className="space-y-6">
+              {/* Current Season Info */}
+              <div className="bg-card rounded-lg border border-border/50 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Leaf className="h-5 w-5" />
+                      Current Season: {currentSeason}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {plants.length} plants • {plants.reduce((sum, plant) => sum + plant.totalHarvest, 0).toFixed(1)} kg harvested
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Archive className="h-4 w-4" />
+                        Archive Season
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Archive Current Season</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will save your current season's data to history and clear your current garden. 
+                          You can start fresh or create a new season afterward.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                          createNewGarden(`${new Date().getFullYear()} New Season`);
+                        }}>
+                          Archive & Start Fresh
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+
+              {/* Season Reports */}
+              <div className="bg-card rounded-lg border border-border/50">
+                <div className="p-6 border-b border-border/50">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Previous Seasons
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your archived harvest reports and garden history
+                  </p>
+                </div>
+                
+                <div className="p-6">
+                  {seasonReports.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h4 className="text-lg font-semibold text-foreground mb-2">No previous seasons</h4>
+                      <p className="text-muted-foreground">
+                        When you start a new season, your current garden data will be archived here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {seasonReports
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((report) => (
+                          <div key={report.id} className="border border-border/50 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h4 className="font-semibold text-foreground">{report.seasonName}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(report.startDate).toLocaleDateString()} - {new Date(report.endDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-semibold text-foreground">{report.totalHarvest.toFixed(1)} kg</p>
+                                <p className="text-sm text-muted-foreground">Total Harvest</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                              <div className="bg-background/50 rounded p-3">
+                                <div className="flex items-center gap-2">
+                                  <Leaf className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-medium">Plants: {report.plants.length}</span>
+                                </div>
+                              </div>
+                              <div className="bg-background/50 rounded p-3">
+                                <div className="flex items-center gap-2">
+                                  <Scale className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm font-medium">
+                                    Producers: {report.plants.filter(p => p.totalHarvest > 0).length}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="bg-background/50 rounded p-3">
+                                <div className="flex items-center gap-2">
+                                  <BarChart3 className="h-4 w-4 text-orange-600" />
+                                  <span className="text-sm font-medium">
+                                    Avg: {report.plants.length > 0 ? (report.totalHarvest / report.plants.length).toFixed(1) : "0.0"} kg
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Top performers */}
+                            {report.plants.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-medium text-foreground mb-2">Top Performers:</h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {report.plants
+                                    .filter(p => p.totalHarvest > 0)
+                                    .sort((a, b) => b.totalHarvest - a.totalHarvest)
+                                    .slice(0, 3)
+                                    .map((plant) => (
+                                      <Badge key={plant.id} variant="outline" className="text-xs">
+                                        {plant.name}: {plant.totalHarvest.toFixed(1)} kg
+                                      </Badge>
+                                    ))}
+                                  {report.plants.filter(p => p.totalHarvest > 0).length === 0 && (
+                                    <span className="text-sm text-muted-foreground">No harvest recorded</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
