@@ -512,6 +512,7 @@ const Index = () => {
               plants={plants} 
               onUpdatePlant={updatePlant} 
               onDuplicatePlant={duplicatePlant}
+              onHarvest={harvestPlant}
             />
           </TabsContent>
           

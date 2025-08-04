@@ -14,6 +14,7 @@ interface GardenLayoutProps {
   plants: Plant[];
   onUpdatePlant?: (plantId: string, updates: Partial<Plant>) => void;
   onDuplicatePlant?: (plant: Plant, newName: string) => void;
+  onHarvest?: (plantId: string, amount: number) => void;
 }
 
 interface PlantPosition {
@@ -23,7 +24,7 @@ interface PlantPosition {
   y: number;
 }
 
-export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: GardenLayoutProps) => {
+export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarvest }: GardenLayoutProps) => {
   // Get current season from localStorage for proper data separation
   const getCurrentSeason = () => {
     try {
@@ -956,7 +957,14 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!draggedPlantId) { // Only handle click if not dragging
-                                handlePlantSelect(plant.id);
+                                if (onHarvest) {
+                                  const amount = prompt("Enter harvest amount (kg):");
+                                  if (amount && !isNaN(Number(amount))) {
+                                    onHarvest(plant.id, Number(amount));
+                                  }
+                                } else {
+                                  handlePlantSelect(plant.id);
+                                }
                               }
                             }}
                             onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
