@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Square, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Square, Trash2, Copy } from "lucide-react";
 import { Plant } from "./PlantCard";
 
 export interface GardenBed {
@@ -44,39 +45,69 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
     width: number;
     height: number;
     type: BedType;
+    quantity: number;
+    useBulkMode: boolean;
   }>({
     name: "",
     width: 2,
     height: 2,
     type: 'raised',
+    quantity: 1,
+    useBulkMode: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.width || !formData.height) return;
 
-    // Find next available position
+    const quantity = formData.useBulkMode ? formData.quantity : 1;
+    
+    // Find starting position for beds
     const existingPositions = beds.map(bed => ({ x: bed.x, y: bed.y }));
-    let x = 0, y = 0;
-    while (existingPositions.some(pos => pos.x === x && pos.y === y)) {
-      x++;
-      if (x > 8) {
-        x = 0;
-        y++;
+    let startX = 0, startY = 0;
+    
+    // Create multiple beds
+    for (let i = 0; i < quantity; i++) {
+      // Find next available position for each bed
+      let x = startX, y = startY;
+      while (existingPositions.some(pos => pos.x === x && pos.y === y)) {
+        x++;
+        if (x > 8) {
+          x = 0;
+          y++;
+        }
+      }
+      
+      // Add this position to existing positions to avoid overlap
+      existingPositions.push({ x, y });
+      
+      // Create bed name with numbering if bulk mode
+      const bedName = quantity > 1 ? `${formData.name} ${i + 1}` : formData.name;
+      
+      onAddBed({
+        name: bedName,
+        width: formData.width,
+        height: formData.height,
+        type: formData.type,
+        x,
+        y,
+      });
+      
+      // Update starting position for next bed
+      startX = x + 1;
+      if (startX > 8) {
+        startX = 0;
+        startY = y + 1;
       }
     }
-
-    onAddBed({
-      ...formData,
-      x,
-      y,
-    });
 
     setFormData({
       name: "",
       width: 2,
       height: 2,
       type: 'raised',
+      quantity: 1,
+      useBulkMode: false,
     });
     setOpen(false);
   };
@@ -102,12 +133,13 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
   };
 
   const applyPreset = (preset: typeof bedPresets[0]) => {
-    setFormData({
+    setFormData(prev => ({
+      ...prev,
       name: preset.name,
       width: preset.width,
       height: preset.height,
       type: preset.type,
-    });
+    }));
   };
 
   return (
@@ -197,6 +229,41 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
                     <SelectItem value="container">Container/Pot</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Bulk Creation Option */}
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="bulkMode"
+                    checked={formData.useBulkMode}
+                    onCheckedChange={(checked) => 
+                      setFormData(prev => ({ ...prev, useBulkMode: checked as boolean }))
+                    }
+                  />
+                  <Label htmlFor="bulkMode" className="flex items-center gap-2">
+                    <Copy className="h-4 w-4" />
+                    Create multiple beds
+                  </Label>
+                </div>
+                
+                {formData.useBulkMode && (
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Number of beds to create</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) || 1 }))}
+                      placeholder="e.g., 5"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Beds will be named "{formData.name} 1", "{formData.name} 2", etc.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-4">
