@@ -277,9 +277,9 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
   const handleBedClick = (bedId: string, e: React.MouseEvent) => {
     if (!selectedPlant || placementMode !== 'plant') return;
     
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    // Always place plant in the center of the bed
+    const x = 0.5;
+    const y = 0.5;
     
     handlePlantDrop(selectedPlant, bedId, x, y);
     
