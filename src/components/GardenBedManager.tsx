@@ -192,11 +192,29 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
                   <Label htmlFor="width">Width (m)</Label>
                   <Input
                     id="width"
-                    type="number"
-                    step="0.5"
-                    min="0.5"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.]?[0-9]*"
                     value={formData.width}
-                    onChange={(e) => setFormData(prev => ({ ...prev, width: Number(e.target.value) }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setFormData(prev => ({ ...prev, width: 0.5 }));
+                      } else {
+                        const num = parseFloat(value);
+                        if (!isNaN(num) && num >= 0.5) {
+                          setFormData(prev => ({ ...prev, width: num }));
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const num = parseFloat(e.target.value);
+                      if (isNaN(num) || num < 0.5) {
+                        setFormData(prev => ({ ...prev, width: 0.5 }));
+                      }
+                    }}
+                    placeholder="2.0"
+                    className="text-lg p-3"
                     required
                   />
                 </div>
@@ -204,11 +222,29 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
                   <Label htmlFor="height">Height (m)</Label>
                   <Input
                     id="height"
-                    type="number"
-                    step="0.5"
-                    min="0.5"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.]?[0-9]*"
                     value={formData.height}
-                    onChange={(e) => setFormData(prev => ({ ...prev, height: Number(e.target.value) }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setFormData(prev => ({ ...prev, height: 0.5 }));
+                      } else {
+                        const num = parseFloat(value);
+                        if (!isNaN(num) && num >= 0.5) {
+                          setFormData(prev => ({ ...prev, height: num }));
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const num = parseFloat(e.target.value);
+                      if (isNaN(num) || num < 0.5) {
+                        setFormData(prev => ({ ...prev, height: 0.5 }));
+                      }
+                    }}
+                    placeholder="2.0"
+                    className="text-lg p-3"
                     required
                   />
                 </div>
@@ -252,12 +288,31 @@ export const GardenBedManager = ({ beds, plants, onAddBed, onRemoveBed, onPlantD
                     <Label htmlFor="quantity">Number of beds to create</Label>
                     <Input
                       id="quantity"
-                      type="number"
-                      min="1"
-                      max="20"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={formData.quantity}
-                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) || 1 }))}
-                      placeholder="e.g., 5"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                          setFormData(prev => ({ ...prev, quantity: 1 }));
+                        } else {
+                          const num = parseInt(value);
+                          if (!isNaN(num) && num >= 1 && num <= 20) {
+                            setFormData(prev => ({ ...prev, quantity: num }));
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const num = parseInt(e.target.value);
+                        if (isNaN(num) || num < 1) {
+                          setFormData(prev => ({ ...prev, quantity: 1 }));
+                        } else if (num > 20) {
+                          setFormData(prev => ({ ...prev, quantity: 20 }));
+                        }
+                      }}
+                      placeholder="5"
+                      className="text-lg p-3"
                     />
                     <p className="text-xs text-muted-foreground">
                       Beds will be named "{formData.name} 1", "{formData.name} 2", etc.

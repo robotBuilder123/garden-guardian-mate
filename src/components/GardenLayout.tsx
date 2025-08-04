@@ -396,22 +396,66 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                   <Label htmlFor="garden-width">Garden Width (meters)</Label>
                   <Input
                     id="garden-width"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*"
                     value={gardenWidth}
-                    onChange={(e) => setGardenWidth(Number(e.target.value) || 1)}
-                    min="1"
-                    max="50"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow empty input for easier editing
+                      if (value === '') {
+                        setGardenWidth(1);
+                      } else {
+                        const num = parseFloat(value);
+                        if (!isNaN(num) && num >= 1 && num <= 50) {
+                          setGardenWidth(num);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Ensure we have a valid value on blur
+                      const num = parseFloat(e.target.value);
+                      if (isNaN(num) || num < 1) {
+                        setGardenWidth(1);
+                      } else if (num > 50) {
+                        setGardenWidth(50);
+                      }
+                    }}
+                    placeholder="10"
+                    className="text-lg p-3"
                   />
                 </div>
                 <div>
                   <Label htmlFor="garden-height">Garden Height (meters)</Label>
                   <Input
                     id="garden-height"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*"
                     value={gardenHeight}
-                    onChange={(e) => setGardenHeight(Number(e.target.value) || 1)}
-                    min="1"
-                    max="50"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow empty input for easier editing
+                      if (value === '') {
+                        setGardenHeight(1);
+                      } else {
+                        const num = parseFloat(value);
+                        if (!isNaN(num) && num >= 1 && num <= 50) {
+                          setGardenHeight(num);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Ensure we have a valid value on blur
+                      const num = parseFloat(e.target.value);
+                      if (isNaN(num) || num < 1) {
+                        setGardenHeight(1);
+                      } else if (num > 50) {
+                        setGardenHeight(50);
+                      }
+                    }}
+                    placeholder="8"
+                    className="text-lg p-3"
                   />
                 </div>
               </div>
