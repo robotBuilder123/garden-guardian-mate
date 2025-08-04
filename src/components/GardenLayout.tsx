@@ -7,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Move, Settings, Square, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { MapPin, Move, Settings, Square, Trash2, Copy, Plus } from "lucide-react";
 
 interface GardenLayoutProps {
   plants: Plant[];
   onUpdatePlant?: (plantId: string, updates: Partial<Plant>) => void;
+  onDuplicatePlant?: (plant: Plant, newName: string) => void;
 }
 
 interface PlantPosition {
@@ -21,7 +23,7 @@ interface PlantPosition {
   y: number;
 }
 
-export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
+export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: GardenLayoutProps) => {
   // Get current season from localStorage for proper data separation
   const getCurrentSeason = () => {
     try {
@@ -126,6 +128,11 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
   const [editingPlantId, setEditingPlantId] = useState<string | null>(null);
   const [editingBedName, setEditingBedName] = useState("");
   const [editingPlantName, setEditingPlantName] = useState("");
+  
+  // Duplication state
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [plantToDuplicate, setPlantToDuplicate] = useState<Plant | null>(null);
+  const [duplicateName, setDuplicateName] = useState("");
 
   // Save garden data to localStorage whenever state changes
   useEffect(() => {
@@ -280,6 +287,21 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
     setSelectedPlant(null);
     setSelectedBed(null);
     setPlacementMode(null);
+  };
+
+  const handleDuplicatePlant = (plant: Plant) => {
+    setPlantToDuplicate(plant);
+    setDuplicateName(`${plant.name} Copy`);
+    setDuplicateDialogOpen(true);
+  };
+
+  const submitDuplication = () => {
+    if (plantToDuplicate && duplicateName.trim() && onDuplicatePlant) {
+      onDuplicatePlant(plantToDuplicate, duplicateName.trim());
+      setDuplicateDialogOpen(false);
+      setPlantToDuplicate(null);
+      setDuplicateName("");
+    }
   };
 
   const getBedTypeIcon = (type: string) => {
@@ -495,46 +517,115 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {unplacedPlants.map(plant => (
-                    <Badge
-                      key={plant.id}
-                      variant={selectedPlant === plant.id ? "default" : "outline"}
-                      className={`cursor-pointer p-4 min-h-12 min-w-20 flex items-center gap-1 select-none text-sm font-medium border-2 transition-all duration-200 touch-manipulation ${
-                        selectedPlant === plant.id 
-                          ? 'bg-primary text-primary-foreground border-primary shadow-lg ring-2 ring-primary/30' 
-                          : 'hover:bg-primary/10 hover:border-primary/50 hover:shadow-md'
-                      }`}
-                      onClick={() => handlePlantSelect(plant.id)}
-                    >
-                      {editingPlantId === plant.id ? (
-                        <Input
-                          value={editingPlantName}
-                          onChange={(e) => setEditingPlantName(e.target.value)}
-                          onBlur={savePlantName}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') savePlantName();
-                            if (e.key === 'Escape') {
-                              setEditingPlantId(null);
-                              setEditingPlantName("");
-                            }
-                          }}
-                          className="h-5 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1 min-w-20"
-                          autoFocus
-                        />
-                      ) : (
-                        <span 
-                          className="cursor-pointer"
-                          onClick={() => startEditingPlant(plant.id, plant.name)}
-                        >
-                          {plant.name}
-                        </span>
-                      )}
-                      <span className="text-xs opacity-70">({plant.spaceRequired}m²)</span>
-                    </Badge>
+                    <div key={plant.id} className="relative group">
+                      <Badge
+                        variant={selectedPlant === plant.id ? "default" : "outline"}
+                        className={`cursor-pointer p-4 min-h-12 min-w-20 flex items-center gap-1 select-none text-sm font-medium border-2 transition-all duration-200 touch-manipulation ${
+                          selectedPlant === plant.id 
+                            ? 'bg-primary text-primary-foreground border-primary shadow-lg ring-2 ring-primary/30' 
+                            : 'hover:bg-primary/10 hover:border-primary/50 hover:shadow-md'
+                        }`}
+                        onClick={() => handlePlantSelect(plant.id)}
+                      >
+                        {editingPlantId === plant.id ? (
+                          <Input
+                            value={editingPlantName}
+                            onChange={(e) => setEditingPlantName(e.target.value)}
+                            onBlur={savePlantName}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') savePlantName();
+                              if (e.key === 'Escape') {
+                                setEditingPlantId(null);
+                                setEditingPlantName("");
+                              }
+                            }}
+                            className="h-5 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1 min-w-20"
+                            autoFocus
+                          />
+                        ) : (
+                          <span 
+                            className="cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditingPlant(plant.id, plant.name);
+                            }}
+                          >
+                            {plant.name}
+                          </span>
+                        )}
+                        <span className="text-xs opacity-70">({plant.spaceRequired}m²)</span>
+                      </Badge>
+                      
+                      {/* Duplicate button - appears on hover */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background border shadow-sm hover:bg-primary hover:text-primary-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicatePlant(plant);
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
+                
+                {/* Status message */}
+                {placementMode === 'plant' && selectedPlant && (
+                  <div className="mt-3 p-2 bg-primary/10 border border-primary/20 rounded text-sm text-primary">
+                    Selected plant: <strong>{unplacedPlants.find(p => p.id === selectedPlant)?.name}</strong>
+                    <br />Click on a garden bed to place it there.
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
+
+          {/* Plant Duplication Dialog */}
+          <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Duplicate Plant</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Create a copy of <strong>{plantToDuplicate?.name}</strong>
+                  </p>
+                  <Label htmlFor="duplicate-name">New Plant Name/ID</Label>
+                  <Input
+                    id="duplicate-name"
+                    value={duplicateName}
+                    onChange={(e) => setDuplicateName(e.target.value)}
+                    placeholder="e.g., Tomato Plant #2"
+                    className="mt-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') submitDuplication();
+                    }}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setDuplicateDialogOpen(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={submitDuplication}
+                    disabled={!duplicateName.trim()}
+                    className="flex-1"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate Plant
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Unplaced Garden Beds */}
           {unplacedBeds.length > 0 && (

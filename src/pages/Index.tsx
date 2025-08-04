@@ -234,6 +234,24 @@ const Index = () => {
     });
   };
 
+  const duplicatePlant = (originalPlant: Plant, newName: string) => {
+    const duplicatedPlant: Plant = {
+      ...originalPlant,
+      id: Date.now().toString(),
+      name: newName,
+      plantedDate: new Date().toISOString().split('T')[0], // Today's date
+      totalHarvest: 0, // Reset harvest for new plant
+      lastHarvest: undefined,
+      comments: [] // Reset comments for new plant
+    };
+    
+    setPlants(prev => [...prev, duplicatedPlant]);
+    toast({
+      title: "Plant duplicated!",
+      description: `${newName} has been created from ${originalPlant.name}.`,
+    });
+  };
+
   const createNewGarden = (seasonName: string) => {
     // Save current season as a report if it has plants
     if (plants.length > 0) {
@@ -490,7 +508,11 @@ const Index = () => {
           </TabsContent>
           
           <TabsContent value="layout" className="mt-6">
-            <GardenLayout plants={plants} onUpdatePlant={updatePlant} />
+            <GardenLayout 
+              plants={plants} 
+              onUpdatePlant={updatePlant} 
+              onDuplicatePlant={duplicatePlant}
+            />
           </TabsContent>
           
           <TabsContent value="harvest" className="mt-6">
