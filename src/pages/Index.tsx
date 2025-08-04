@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Leaf, Droplets, Calendar, Map, Scale, BarChart3, Plus, History, Archive } from "lucide-react";
+import { Search, Leaf, Droplets, Calendar, Map, Scale, BarChart3, Plus, History, Archive, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import gardenHero from "@/assets/garden-hero.jpg";
@@ -351,6 +351,12 @@ const Index = () => {
               <Button variant="outline" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Stats Overview
+              </Button>
+            </Link>
+            <Link to="/economics">
+              <Button variant="outline" className="gap-2">
+                <DollarSign className="h-4 w-4" />
+                Economics
               </Button>
             </Link>
             <AlertDialog>
