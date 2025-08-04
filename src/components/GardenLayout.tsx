@@ -41,6 +41,8 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
 
   const [plantPositions, setPlantPositions] = useState<PlantPosition[]>([]);
   const [draggedPlant, setDraggedPlant] = useState<string | null>(null);
+  const [draggedBed, setDraggedBed] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const addBed = (newBed: Omit<GardenBed, 'id'>) => {
     const bed: GardenBed = {
@@ -61,6 +63,14 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
       const filtered = prev.filter(pos => pos.plantId !== plantId);
       return [...filtered, { plantId, bedId, x, y }];
     });
+  };
+
+  const handleBedDrag = (bedId: string, newX: number, newY: number) => {
+    setBeds(prev => prev.map(bed => 
+      bed.id === bedId 
+        ? { ...bed, x: Math.max(0, newX), y: Math.max(0, newY) }
+        : bed
+    ));
   };
 
   const unplacedPlants = plants.filter(plant => 
@@ -124,7 +134,22 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
           )}
 
           {/* Garden Grid */}
-          <div className="relative bg-green-50 rounded-lg p-6 min-h-96 border-2 border-green-200">
+          <div 
+            className="relative bg-green-50 rounded-lg p-6 min-h-96 border-2 border-green-200"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const data = e.dataTransfer.getData('text/plain');
+              
+              if (data.startsWith('bed-') && draggedBed) {
+                const bedId = data.replace('bed-', '');
+                const rect = e.currentTarget.getBoundingClientRect();
+                const newX = Math.round((e.clientX - rect.left - dragOffset.x) / 60);
+                const newY = Math.round((e.clientY - rect.top - dragOffset.y - 40) / 60);
+                handleBedDrag(bedId, newX, newY);
+              }
+            }}
+          >
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
             
             <div className="relative">
@@ -149,11 +174,13 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                 return (
                   <div
                     key={bed.id}
-                    className={`absolute border-2 rounded-lg p-3 ${
+                    className={`absolute border-2 rounded-lg p-3 cursor-move ${
                       bed.type === 'raised' ? 'bg-amber-100 border-amber-400' :
                       bed.type === 'ground' ? 'bg-green-100 border-green-400' :
                       'bg-blue-100 border-blue-400'
-                    } ${isOvercrowded ? 'ring-2 ring-red-400' : ''}`}
+                    } ${isOvercrowded ? 'ring-2 ring-red-400' : ''} ${
+                      draggedBed === bed.id ? 'opacity-50' : ''
+                    }`}
                     style={{
                       left: `${bed.x * 60}px`,
                       top: `${bed.y * 60 + 40}px`,
@@ -162,15 +189,31 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                       minWidth: '80px',
                       minHeight: '60px'
                     }}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggedBed(bed.id);
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const parentRect = e.currentTarget.parentElement!.getBoundingClientRect();
+                      setDragOffset({
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                      });
+                      e.dataTransfer.setData('text/plain', `bed-${bed.id}`);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedBed(null);
+                    }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
-                      const plantId = e.dataTransfer.getData('text/plain');
-                      if (plantId && draggedPlant) {
+                      const data = e.dataTransfer.getData('text/plain');
+                      
+                      // Handle plant drops
+                      if (data && !data.startsWith('bed-') && draggedPlant) {
                         const rect = e.currentTarget.getBoundingClientRect();
                         const x = (e.clientX - rect.left) / rect.width;
                         const y = (e.clientY - rect.top) / rect.height;
-                        handlePlantDrop(plantId, bed.id, x, y);
+                        handlePlantDrop(data, bed.id, x, y);
                         setDraggedPlant(null);
                       }
                     }}
