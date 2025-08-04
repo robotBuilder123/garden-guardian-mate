@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { PlantCard, Plant } from "@/components/PlantCard";
 import { AddPlantDialog } from "@/components/AddPlantDialog";
+import { GardenLayout } from "@/components/GardenLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Leaf, Droplets, Calendar } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Leaf, Droplets, Calendar, Map } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import gardenHero from "@/assets/garden-hero.jpg";
 
@@ -192,34 +194,54 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Plants Grid */}
-        {filteredPlants.length === 0 ? (
-          <div className="text-center py-12">
-            <Leaf className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {plants.length === 0 ? "No plants yet" : "No plants found"}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {plants.length === 0 
-                ? "Start your garden by adding your first plant!" 
-                : "Try adjusting your search or filters."
-              }
-            </p>
-            {plants.length === 0 && <AddPlantDialog onAddPlant={addPlant} />}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPlants.map((plant) => (
-              <PlantCard
-                key={plant.id}
-                plant={plant}
-                onWater={waterPlant}
-                onFertilize={fertilizePlant}
-                onEdit={editPlant}
-              />
-            ))}
-          </div>
-        )}
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="cards" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="cards" className="gap-2">
+              <Leaf className="h-4 w-4" />
+              Plant Cards
+            </TabsTrigger>
+            <TabsTrigger value="layout" className="gap-2">
+              <Map className="h-4 w-4" />
+              Garden Layout
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="cards" className="mt-6">
+            {/* Plants Grid */}
+            {filteredPlants.length === 0 ? (
+              <div className="text-center py-12">
+                <Leaf className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {plants.length === 0 ? "No plants yet" : "No plants found"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {plants.length === 0 
+                    ? "Start your garden by adding your first plant!" 
+                    : "Try adjusting your search or filters."
+                  }
+                </p>
+                {plants.length === 0 && <AddPlantDialog onAddPlant={addPlant} />}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPlants.map((plant) => (
+                  <PlantCard
+                    key={plant.id}
+                    plant={plant}
+                    onWater={waterPlant}
+                    onFertilize={fertilizePlant}
+                    onEdit={editPlant}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="layout" className="mt-6">
+            <GardenLayout plants={plants} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
