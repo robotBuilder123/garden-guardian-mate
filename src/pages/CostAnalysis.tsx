@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { DollarSign, Clock, TrendingUp, TrendingDown, Calculator, Plus, ArrowLeft, Trash2, Edit, ShoppingCart, Coins } from "lucide-react";
+import { DollarSign, Clock, TrendingUp, TrendingDown, Calculator, Plus, ArrowLeft, Trash2, Edit, ShoppingCart, Coins, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Plant } from "@/components/PlantCard";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +65,11 @@ const CostAnalysis = () => {
   const [expenses, setExpenses] = useState<GardenExpense[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [producePricing, setProducePricing] = useState<ProducePricing[]>(defaultProducePricing);
+  
+  // Settings states
+  const [currency, setCurrency] = useState<string>('USD');
+  const [metricSystem, setMetricSystem] = useState<'metric' | 'imperial'>('metric');
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   // Dialog states
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
@@ -124,6 +129,20 @@ const CostAnalysis = () => {
     } catch (error) {
       console.error('Error loading pricing:', error);
     }
+
+    // Load settings
+    try {
+      const savedCurrency = localStorage.getItem('garden-currency');
+      if (savedCurrency) {
+        setCurrency(savedCurrency);
+      }
+      const savedMetricSystem = localStorage.getItem('garden-metric-system');
+      if (savedMetricSystem) {
+        setMetricSystem(savedMetricSystem as 'metric' | 'imperial');
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
   }, []);
 
   // Save data to localStorage whenever it changes
@@ -138,6 +157,15 @@ const CostAnalysis = () => {
   useEffect(() => {
     localStorage.setItem('garden-produce-pricing', JSON.stringify(producePricing));
   }, [producePricing]);
+
+  // Save settings
+  useEffect(() => {
+    localStorage.setItem('garden-currency', currency);
+  }, [currency]);
+
+  useEffect(() => {
+    localStorage.setItem('garden-metric-system', metricSystem);
+  }, [metricSystem]);
 
   const addExpense = () => {
     if (!newExpense.name || !newExpense.cost || !newExpense.category) return;
@@ -202,6 +230,41 @@ const CostAnalysis = () => {
       description: "The time entry has been deleted",
       variant: "destructive"
     });
+  };
+
+  // Currency conversion and formatting functions
+  const currencies = {
+    'USD': { symbol: '$', rate: 1, name: 'US Dollar' },
+    'EUR': { symbol: '€', rate: 0.85, name: 'Euro' },
+    'GBP': { symbol: '£', rate: 0.73, name: 'British Pound' },
+    'CAD': { symbol: 'C$', rate: 1.25, name: 'Canadian Dollar' },
+    'AUD': { symbol: 'A$', rate: 1.35, name: 'Australian Dollar' },
+    'JPY': { symbol: '¥', rate: 110, name: 'Japanese Yen' },
+  };
+
+  const formatCurrency = (amount: number) => {
+    const rate = currencies[currency as keyof typeof currencies]?.rate || 1;
+    const symbol = currencies[currency as keyof typeof currencies]?.symbol || '$';
+    const converted = amount * rate;
+    return `${symbol}${converted.toFixed(2)}`;
+  };
+
+  const formatWeight = (kg: number) => {
+    if (metricSystem === 'metric') {
+      return `${kg.toFixed(2)} kg`;
+    } else {
+      const lbs = kg * 2.20462;
+      return `${lbs.toFixed(2)} lbs`;
+    }
+  };
+
+  const formatArea = (sqm: number) => {
+    if (metricSystem === 'metric') {
+      return `${sqm.toFixed(2)} m²`;
+    } else {
+      const sqft = sqm * 10.7639;
+      return `${sqft.toFixed(2)} ft²`;
+    }
   };
 
   // Calculate financial metrics
@@ -281,10 +344,54 @@ const CostAnalysis = () => {
           </Link>
           <h1 className="text-3xl font-bold">Garden Economics</h1>
         </div>
-        <Badge variant="outline" className="px-3 py-1">
-          <Coins className="h-4 w-4 mr-2" />
-          {currentSeason}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Garden Economics Settings</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="currency-select">Currency</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(currencies).map(([code, info]) => (
+                        <SelectItem key={code} value={code}>
+                          {info.symbol} {info.name} ({code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="metric-select">Measurement System</Label>
+                  <Select value={metricSystem} onValueChange={(value) => setMetricSystem(value as 'metric' | 'imperial')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="metric">Metric (kg, m²)</SelectItem>
+                      <SelectItem value="imperial">Imperial (lbs, ft²)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Badge variant="outline" className="px-3 py-1">
+            <Coins className="h-4 w-4 mr-2" />
+            {currentSeason}
+          </Badge>
+        </div>
       </div>
 
       {/* Key Financial Metrics */}
@@ -295,7 +402,7 @@ const CostAnalysis = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${financialMetrics.totalExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(financialMetrics.totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
               Across {expenses.length} purchases
             </p>
@@ -308,7 +415,7 @@ const CostAnalysis = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${financialMetrics.totalSavings.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(financialMetrics.totalSavings)}</div>
             <p className="text-xs text-muted-foreground">
               Based on organic store prices
             </p>
@@ -325,7 +432,7 @@ const CostAnalysis = () => {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${financialMetrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${financialMetrics.netProfit.toFixed(2)}
+              {formatCurrency(financialMetrics.netProfit)}
             </div>
             <p className="text-xs text-muted-foreground">
               ROI: {financialMetrics.roi.toFixed(1)}%
@@ -340,7 +447,7 @@ const CostAnalysis = () => {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${financialMetrics.hourlyWage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${financialMetrics.hourlyWage.toFixed(2)}
+              {formatCurrency(financialMetrics.hourlyWage)}
             </div>
             <p className="text-xs text-muted-foreground">
               {financialMetrics.totalHours} hours logged
