@@ -134,6 +134,10 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
   const [plantToDuplicate, setPlantToDuplicate] = useState<Plant | null>(null);
   const [duplicateName, setDuplicateName] = useState("");
 
+  // Drag state for removing plants
+  const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
+  const [isDraggingOut, setIsDraggingOut] = useState(false);
+
   // Save garden data to localStorage whenever state changes
   useEffect(() => {
     try {
@@ -301,6 +305,43 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
       setDuplicateDialogOpen(false);
       setPlantToDuplicate(null);
       setDuplicateName("");
+    }
+  };
+
+  // Drag-to-remove handlers
+  const handlePlantDragStart = (e: React.DragEvent, plantId: string) => {
+    setDraggedPlantId(plantId);
+    e.dataTransfer.setData('application/json', JSON.stringify({ plantId, action: 'remove' }));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handlePlantDragEnd = () => {
+    setDraggedPlantId(null);
+    setIsDraggingOut(false);
+  };
+
+  const handleRemoveZoneDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDraggingOut(true);
+  };
+
+  const handleRemoveZoneDragLeave = () => {
+    setIsDraggingOut(false);
+  };
+
+  const handleRemoveZoneDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (data.action === 'remove' && data.plantId) {
+        // Remove plant from its current position
+        setPlantPositions(prev => prev.filter(pos => pos.plantId !== data.plantId));
+        setIsDraggingOut(false);
+        setDraggedPlantId(null);
+      }
+    } catch (error) {
+      console.error('Error parsing drag data:', error);
     }
   };
 
@@ -583,6 +624,27 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
             </Card>
           )}
 
+          {/* Drag-to-Remove Zone */}
+          {draggedPlantId && (
+            <div
+              className={`fixed top-4 right-4 z-50 p-4 rounded-lg border-2 border-dashed transition-all duration-200 ${
+                isDraggingOut 
+                  ? 'bg-red-100 border-red-400 text-red-700 scale-110' 
+                  : 'bg-gray-100 border-gray-400 text-gray-600'
+              }`}
+              onDragOver={handleRemoveZoneDragOver}
+              onDragLeave={handleRemoveZoneDragLeave}
+              onDrop={handleRemoveZoneDrop}
+            >
+              <div className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                <span className="font-medium">
+                  {isDraggingOut ? 'Release to remove plant' : 'Drag plant here to remove'}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Plant Duplication Dialog */}
           <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
             <DialogContent>
@@ -861,24 +923,27 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
                        {bedPlants.map(({ plant, x, y }) => (
                          <div
                            key={plant.id}
-                           className={`absolute text-white text-sm p-3 min-h-12 min-w-16 rounded-lg shadow-lg cursor-pointer select-none border-2 border-white hover:shadow-xl transition-all duration-200 touch-manipulation ${
-                             selectedPlant === plant.id 
-                               ? 'bg-primary ring-2 ring-primary/50 scale-110' 
-                               : 'bg-green-600 hover:bg-green-700'
-                           }`}
-                           style={{
-                             left: `${x * 100}%`,
-                             top: `${y * 100}%`,
-                             transform: 'translate(-50%, -50%)',
-                             textAlign: 'center',
-                             fontSize: '12px',
-                             lineHeight: '1.2'
-                           }}
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             handlePlantSelect(plant.id);
-                           }}
-                         onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
+                            className={`absolute text-white text-sm p-3 min-h-12 min-w-16 rounded-lg shadow-lg cursor-move select-none border-2 border-white hover:shadow-xl transition-all duration-200 touch-manipulation ${
+                              selectedPlant === plant.id 
+                                ? 'bg-primary ring-2 ring-primary/50 scale-110' 
+                                : 'bg-green-600 hover:bg-green-700'
+                            } ${draggedPlantId === plant.id ? 'opacity-50 scale-90' : ''}`}
+                            style={{
+                              left: `${x * 100}%`,
+                              top: `${y * 100}%`,
+                              transform: 'translate(-50%, -50%)',
+                              textAlign: 'center',
+                              fontSize: '12px',
+                              lineHeight: '1.2'
+                            }}
+                            draggable={true}
+                            onDragStart={(e) => handlePlantDragStart(e, plant.id)}
+                            onDragEnd={handlePlantDragEnd}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlantSelect(plant.id);
+                            }}
+                            onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
                        >
                          {editingPlantId === plant.id ? (
                            <Input
@@ -895,9 +960,12 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant }: Garden
                              className="h-4 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1 text-black"
                              autoFocus
                            />
-                         ) : (
-                           plant.name
-                         )}
+                          ) : (
+                            <>
+                              <div>{plant.name}</div>
+                              <div className="text-xs opacity-75 mt-1">Drag to remove</div>
+                            </>
+                          )}
                        </div>
                      ))}
                   </div>
