@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Plant } from "./PlantCard";
 import { GardenBedManager, GardenBed } from "./GardenBedManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Move } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MapPin, Move, Settings } from "lucide-react";
 
 interface GardenLayoutProps {
   plants: Plant[];
@@ -43,6 +46,11 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
   const [draggedPlant, setDraggedPlant] = useState<string | null>(null);
   const [draggedBed, setDraggedBed] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  // Garden boundary settings
+  const [gardenWidth, setGardenWidth] = useState(10); // meters
+  const [gardenHeight, setGardenHeight] = useState(8); // meters
+  const [showBoundaries, setShowBoundaries] = useState(true);
 
   const addBed = (newBed: Omit<GardenBed, 'id'>) => {
     const bed: GardenBed = {
@@ -105,6 +113,54 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
         </TabsContent>
         
         <TabsContent value="layout" className="space-y-6">
+          {/* Garden Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Garden Boundaries
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="garden-width">Garden Width (meters)</Label>
+                  <Input
+                    id="garden-width"
+                    type="number"
+                    value={gardenWidth}
+                    onChange={(e) => setGardenWidth(Number(e.target.value) || 1)}
+                    min="1"
+                    max="50"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="garden-height">Garden Height (meters)</Label>
+                  <Input
+                    id="garden-height"
+                    type="number"
+                    value={gardenHeight}
+                    onChange={(e) => setGardenHeight(Number(e.target.value) || 1)}
+                    min="1"
+                    max="50"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBoundaries(!showBoundaries)}
+                >
+                  {showBoundaries ? 'Hide' : 'Show'} Boundaries
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Garden area: {gardenWidth}m × {gardenHeight}m = {gardenWidth * gardenHeight}m²
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Unplaced Plants */}
           {unplacedPlants.length > 0 && (
             <Card>
@@ -168,6 +224,25 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
             {/* Grid overlay */}
             <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,_#22c55e_1px,_transparent_1px),_linear-gradient(to_bottom,_#22c55e_1px,_transparent_1px)] bg-[length:60px_60px]" />
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,_#22c55e_1px,_transparent_0)] bg-[length:20px_20px]" />
+            
+            {/* Garden Boundaries */}
+            {showBoundaries && (
+              <div
+                className="absolute border-4 border-dashed border-green-600 bg-green-100/20 rounded-lg"
+                style={{
+                  left: '40px',
+                  top: '80px',
+                  width: `${gardenWidth * 60}px`,
+                  height: `${gardenHeight * 60}px`,
+                  minWidth: '120px',
+                  minHeight: '120px'
+                }}
+              >
+                <div className="absolute -top-6 left-0 text-xs font-medium text-green-700">
+                  Garden Area: {gardenWidth}m × {gardenHeight}m
+                </div>
+              </div>
+            )}
             
             <div className="relative">
               <h4 className="font-medium mb-4 flex items-center gap-2">
