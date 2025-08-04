@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Leaf, Droplets, Calendar, Map, Scale } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Leaf, Droplets, Calendar, Map, Scale, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import gardenHero from "@/assets/garden-hero.jpg";
 
@@ -244,7 +245,7 @@ const Index = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="cards" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="cards" className="gap-2">
               <Leaf className="h-4 w-4" />
               Plant Cards
@@ -252,6 +253,10 @@ const Index = () => {
             <TabsTrigger value="layout" className="gap-2">
               <Map className="h-4 w-4" />
               Garden Layout
+            </TabsTrigger>
+            <TabsTrigger value="harvest" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Harvest Tracker
             </TabsTrigger>
           </TabsList>
           
@@ -289,6 +294,139 @@ const Index = () => {
           
           <TabsContent value="layout" className="mt-6">
             <GardenLayout plants={plants} onUpdatePlant={updatePlant} />
+          </TabsContent>
+          
+          <TabsContent value="harvest" className="mt-6">
+            <div className="space-y-6">
+              {/* Harvest Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-card rounded-lg p-6 border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <Scale className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Harvest</p>
+                      <p className="text-2xl font-semibold text-foreground">
+                        {plants.reduce((sum, plant) => sum + plant.totalHarvest, 0).toFixed(1)} kg
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-card rounded-lg p-6 border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Leaf className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Producing Plants</p>
+                      <p className="text-2xl font-semibold text-foreground">
+                        {plants.filter(p => p.totalHarvest > 0).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-card rounded-lg p-6 border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/10">
+                      <BarChart3 className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Average per Plant</p>
+                      <p className="text-2xl font-semibold text-foreground">
+                        {plants.length > 0 
+                          ? (plants.reduce((sum, plant) => sum + plant.totalHarvest, 0) / plants.length).toFixed(1)
+                          : "0.0"
+                        } kg
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Harvest Table */}
+              <div className="bg-card rounded-lg border border-border/50">
+                <div className="p-6 border-b border-border/50">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Harvest Overview
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Track your harvest progress for each plant
+                  </p>
+                </div>
+                
+                <div className="p-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Plant Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Total Harvest</TableHead>
+                        <TableHead>Last Harvest</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {plants.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No plants added yet. Start by adding your first plant!
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        plants
+                          .sort((a, b) => b.totalHarvest - a.totalHarvest) // Sort by harvest amount descending
+                          .map((plant) => (
+                            <TableRow key={plant.id}>
+                              <TableCell className="font-medium">{plant.name}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {plant.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {plant.location}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Scale className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-semibold">
+                                    {plant.totalHarvest.toFixed(1)} kg
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {plant.lastHarvest 
+                                  ? new Date(plant.lastHarvest).toLocaleDateString()
+                                  : "Never"
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={plant.status === 'healthy' ? 'default' : 'secondary'}
+                                  className={`text-xs ${
+                                    plant.status === 'healthy' 
+                                      ? 'bg-healthy/10 text-healthy border-healthy/20' 
+                                      : plant.status === 'needs-care'
+                                      ? 'bg-needs-care/10 text-needs-care border-needs-care/20'
+                                      : 'bg-critical/10 text-critical border-critical/20'
+                                  }`}
+                                >
+                                  {plant.status === 'needs-care' ? 'Needs Care' : plant.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
