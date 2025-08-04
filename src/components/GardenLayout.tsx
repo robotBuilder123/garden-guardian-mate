@@ -1072,21 +1072,21 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                     </div>
                      
                         {bedPlants.map(({ plant, x, y }) => (
-                         <div
-                           key={plant.id}
-                            className={`absolute text-white text-xs p-2 min-w-16 h-10 rounded cursor-move select-none border border-white hover:shadow-lg transition-all duration-200 touch-manipulation flex flex-col items-center justify-center ${
-                              selectedPlant === plant.id 
-                                ? 'bg-primary ring-2 ring-primary/50 scale-110' 
-                                : 'bg-green-600 hover:bg-green-700'
-                            } ${draggedPlantId === plant.id ? 'opacity-50 scale-90' : ''}`}
-                            style={{
-                              left: `${x * 100}%`,
-                              top: `${y * 100}%`,
-                              transform: 'translate(-50%, -50%)',
-                              textAlign: 'center',
-                              fontSize: '12px',
-                              lineHeight: '1.2'
-                            }}
+                          <div
+                            key={plant.id}
+                             className={`absolute text-white text-xs p-1 min-w-12 h-8 rounded cursor-move select-none border border-white hover:shadow-lg transition-all duration-200 touch-manipulation flex flex-col items-center justify-center ${
+                               selectedPlant === plant.id 
+                                 ? 'bg-primary ring-2 ring-primary/50 scale-110' 
+                                 : 'bg-green-600 hover:bg-green-700'
+                             } ${draggedPlantId === plant.id ? 'opacity-50 scale-90' : ''}`}
+                             style={{
+                               left: `${x * 100}%`,
+                               top: `${y * 100}%`,
+                               transform: 'translate(-50%, -50%)',
+                               textAlign: 'center',
+                               fontSize: '10px',
+                               lineHeight: '1.1'
+                             }}
                             draggable={editingPlantId !== plant.id} // Only draggable when not editing
                             onDragStart={(e) => {
                               console.log('Plant drag start event triggered');
