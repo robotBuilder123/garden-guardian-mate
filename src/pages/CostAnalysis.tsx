@@ -240,6 +240,7 @@ const CostAnalysis = () => {
     'CAD': { symbol: 'C$', rate: 1.25, name: 'Canadian Dollar' },
     'AUD': { symbol: 'A$', rate: 1.35, name: 'Australian Dollar' },
     'JPY': { symbol: '¥', rate: 110, name: 'Japanese Yen' },
+    'SEK': { symbol: 'kr', rate: 10.5, name: 'Swedish Krona' },
   };
 
   const formatCurrency = (amount: number) => {
