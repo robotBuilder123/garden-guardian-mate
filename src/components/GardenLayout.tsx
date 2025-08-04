@@ -362,77 +362,69 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
     }
   };
 
-  // Resize handlers
+  // Simple, reliable resize handlers
   const handleResizeStart = (bedId: string, type: 'corner' | 'right' | 'bottom' | 'left' | 'top', e: React.MouseEvent) => {
+    console.log('Starting resize:', bedId, type);
     e.stopPropagation();
     e.preventDefault();
     
     const bed = beds.find(b => b.id === bedId);
     if (!bed) return;
     
-    setResizingBedId(bedId);
-    setResizeType(type);
-    setResizeStartPos({ x: e.clientX, y: e.clientY });
-    setOriginalBedSize({ width: bed.width, height: bed.height });
-    setOriginalBedPos({ x: bed.x, y: bed.y });
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = bed.width;
+    const startHeight = bed.height;
+    const startPosX = bed.x;
+    const startPosY = bed.y;
     
-    // Add global event listeners
-    const handleGlobalResize = (e: MouseEvent) => {
-      if (!resizingBedId) return;
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = (moveEvent.clientX - startX) / 60; // 60px = 1 meter
+      const deltaY = (moveEvent.clientY - startY) / 60;
       
-      const deltaX = (e.clientX - resizeStartPos.x) / 60;
-      const deltaY = (e.clientY - resizeStartPos.y) / 60;
-      
-      const currentBed = beds.find(b => b.id === bedId);
-      if (!currentBed) return;
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startPosX;
+      let newY = startPosY;
 
-      let newWidth = originalBedSize.width;
-      let newHeight = originalBedSize.height;
-      let newX = originalBedPos.x;
-      let newY = originalBedPos.y;
-
-      // Calculate new dimensions based on resize type
       switch (type) {
         case 'corner':
-          newWidth = Math.max(0.25, Math.round((originalBedSize.width + deltaX) * 4) / 4);
-          newHeight = Math.max(0.25, Math.round((originalBedSize.height + deltaY) * 4) / 4);
+          newWidth = Math.max(0.25, Math.round((startWidth + deltaX) * 4) / 4);
+          newHeight = Math.max(0.25, Math.round((startHeight + deltaY) * 4) / 4);
           break;
         case 'right':
-          newWidth = Math.max(0.25, Math.round((originalBedSize.width + deltaX) * 4) / 4);
+          newWidth = Math.max(0.25, Math.round((startWidth + deltaX) * 4) / 4);
           break;
         case 'bottom':
-          newHeight = Math.max(0.25, Math.round((originalBedSize.height + deltaY) * 4) / 4);
+          newHeight = Math.max(0.25, Math.round((startHeight + deltaY) * 4) / 4);
           break;
         case 'left':
-          newWidth = Math.max(0.25, Math.round((originalBedSize.width - deltaX) * 4) / 4);
-          newX = Math.round((originalBedPos.x + (originalBedSize.width - newWidth)) * 4) / 4;
+          newWidth = Math.max(0.25, Math.round((startWidth - deltaX) * 4) / 4);
+          newX = startPosX + (startWidth - newWidth);
           break;
         case 'top':
-          newHeight = Math.max(0.25, Math.round((originalBedSize.height - deltaY) * 4) / 4);
-          newY = Math.round((originalBedPos.y + (originalBedSize.height - newHeight)) * 4) / 4;
+          newHeight = Math.max(0.25, Math.round((startHeight - deltaY) * 4) / 4);
+          newY = startPosY + (startHeight - newHeight);
           break;
       }
       
-      // Ensure bed stays within garden boundaries
+      // Keep within boundaries
       newX = Math.max(0, Math.min(newX, gardenWidth - newWidth));
       newY = Math.max(0, Math.min(newY, gardenHeight - newHeight));
       
       setBeds(prev => prev.map(b => 
-        b.id === bedId 
-          ? { ...b, width: newWidth, height: newHeight, x: newX, y: newY }
-          : b
+        b.id === bedId ? { ...b, width: newWidth, height: newHeight, x: newX, y: newY } : b
       ));
     };
 
-    const handleGlobalResizeEnd = () => {
-      setResizingBedId(null);
-      setResizeType(null);
-      document.removeEventListener('mousemove', handleGlobalResize);
-      document.removeEventListener('mouseup', handleGlobalResizeEnd);
+    const handleMouseUp = () => {
+      console.log('Ending resize');
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
     
-    document.addEventListener('mousemove', handleGlobalResize);
-    document.addEventListener('mouseup', handleGlobalResizeEnd);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const getBedTypeIcon = (type: string) => {
