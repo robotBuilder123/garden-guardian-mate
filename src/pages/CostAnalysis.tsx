@@ -188,7 +188,7 @@ const CostAnalysis = () => {
 
     toast({
       title: "Expense added!",
-      description: `Added $${expense.cost} for ${expense.name}`,
+      description: `Added ${formatCurrency(expense.cost)} for ${expense.name}`,
     });
   };
 
@@ -478,7 +478,7 @@ const CostAnalysis = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip formatter={(value: number) => [`$${value.toFixed(2)}`, 'Amount']} />
+                    <Tooltip formatter={(value: number) => [formatCurrency(value), 'Amount']} />
                     <Area type="monotone" dataKey="savings" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
                     <Area type="monotone" dataKey="expenses" stackId="2" stroke="#ef4444" fill="#ef4444" fillOpacity={0.6} />
                   </AreaChart>
@@ -507,7 +507,7 @@ const CostAnalysis = () => {
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`$${value.toFixed(2)}`, 'Spent']} />
+                    <Tooltip formatter={(value: number) => [formatCurrency(value), 'Spent']} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -559,7 +559,7 @@ const CostAnalysis = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="expense-cost">Cost ($)</Label>
+                      <Label htmlFor="expense-cost">Cost ({currencies[currency as keyof typeof currencies]?.symbol || '$'})</Label>
                       <Input
                         id="expense-cost"
                         type="number"
@@ -634,7 +634,7 @@ const CostAnalysis = () => {
                               {category?.icon} {category?.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-medium">${expense.cost.toFixed(2)}</TableCell>
+                          <TableCell className="font-medium">{formatCurrency(expense.cost)}</TableCell>
                           <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Button
@@ -764,7 +764,7 @@ const CostAnalysis = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Produce Pricing (per kg)</CardTitle>
+              <CardTitle>Produce Pricing (per {formatWeight(1).split(' ')[1]})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -774,7 +774,7 @@ const CostAnalysis = () => {
                     <div>
                       <Label className="text-xs">Regular Store Price</Label>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">$</span>
+                        <span className="text-sm">{currencies[currency as keyof typeof currencies]?.symbol || '$'}</span>
                         <Input
                           type="number"
                           step="0.01"
@@ -786,13 +786,13 @@ const CostAnalysis = () => {
                           }}
                           className="w-20"
                         />
-                        <span className="text-sm text-muted-foreground">/kg</span>
+                        <span className="text-sm text-muted-foreground">/{formatWeight(1).split(' ')[1]}</span>
                       </div>
                     </div>
                     <div>
                       <Label className="text-xs">Organic Store Price</Label>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">$</span>
+                        <span className="text-sm">{currencies[currency as keyof typeof currencies]?.symbol || '$'}</span>
                         <Input
                           type="number"
                           step="0.01"
@@ -804,7 +804,7 @@ const CostAnalysis = () => {
                           }}
                           className="w-20"
                         />
-                        <span className="text-sm text-muted-foreground">/kg</span>
+                        <span className="text-sm text-muted-foreground">/{formatWeight(1).split(' ')[1]}</span>
                       </div>
                     </div>
                   </div>
