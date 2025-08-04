@@ -932,7 +932,7 @@ export const GardenLayout = ({ plants, onUpdatePlant, onDuplicatePlant, onHarves
                        {bedPlants.map(({ plant, x, y }) => (
                          <div
                            key={plant.id}
-                            className={`absolute text-white text-xs p-1 min-h-6 min-w-8 rounded shadow-md cursor-move select-none border border-white hover:shadow-lg transition-all duration-200 touch-manipulation ${
+                            className={`absolute text-white text-[10px] p-0.5 w-4 h-4 rounded cursor-move select-none border border-white hover:shadow-lg transition-all duration-200 touch-manipulation flex items-center justify-center ${
                               selectedPlant === plant.id 
                                 ? 'bg-primary ring-2 ring-primary/50 scale-110' 
                                 : 'bg-green-600 hover:bg-green-700'
