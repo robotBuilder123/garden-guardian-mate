@@ -121,8 +121,15 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                       className="cursor-move p-2 hover:bg-primary/10"
                       draggable
                       onDragStart={(e) => {
+                        console.log('Starting plant drag:', plant.id);
                         setDraggedPlant(plant.id);
                         e.dataTransfer.setData('text/plain', plant.id);
+                        e.dataTransfer.setData('application/plant-id', plant.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragEnd={() => {
+                        console.log('Plant drag ended');
+                        setDraggedPlant(null);
                       }}
                     >
                       {plant.name} ({plant.spaceRequired}m²)
@@ -140,6 +147,7 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
             onDrop={(e) => {
               e.preventDefault();
               const data = e.dataTransfer.getData('text/plain');
+              const plantId = e.dataTransfer.getData('application/plant-id');
               
               if (data.startsWith('bed-') && draggedBed) {
                 const bedId = data.replace('bed-', '');
@@ -203,17 +211,28 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                     onDragEnd={() => {
                       setDraggedBed(null);
                     }}
-                    onDragOver={(e) => e.preventDefault()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }}
                     onDrop={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
+                      
                       const data = e.dataTransfer.getData('text/plain');
+                      const plantId = e.dataTransfer.getData('application/plant-id');
+                      
+                      console.log('Drop event:', { data, plantId, draggedPlant });
                       
                       // Handle plant drops
-                      if (data && !data.startsWith('bed-') && draggedPlant) {
+                      if ((data || plantId) && !data.startsWith('bed-') && draggedPlant) {
+                        const actualPlantId = plantId || data;
                         const rect = e.currentTarget.getBoundingClientRect();
                         const x = (e.clientX - rect.left) / rect.width;
                         const y = (e.clientY - rect.top) / rect.height;
-                        handlePlantDrop(data, bed.id, x, y);
+                        
+                        console.log('Dropping plant:', actualPlantId, 'into bed:', bed.id, 'at position:', { x, y });
+                        handlePlantDrop(actualPlantId, bed.id, x, y);
                         setDraggedPlant(null);
                       }
                     }}
@@ -240,6 +259,10 @@ export const GardenLayout = ({ plants }: GardenLayoutProps) => {
                         onDragStart={(e) => {
                           setDraggedPlant(plant.id);
                           e.dataTransfer.setData('text/plain', plant.id);
+                          e.dataTransfer.setData('application/plant-id', plant.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedPlant(null);
                         }}
                       >
                         {plant.name}
