@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Move, Settings, Square } from "lucide-react";
+import { MapPin, Move, Settings, Square, Trash2 } from "lucide-react";
 
 interface GardenLayoutProps {
   plants: Plant[];
@@ -139,8 +139,9 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="beds" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="beds">Manage Beds</TabsTrigger>
+          <TabsTrigger value="unplaced">Unplaced Beds</TabsTrigger>
           <TabsTrigger value="layout">Garden Layout</TabsTrigger>
         </TabsList>
         
@@ -152,6 +153,97 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
             onRemoveBed={removeBed}
             onPlantDrop={handlePlantDrop}
           />
+        </TabsContent>
+
+        <TabsContent value="unplaced">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Square className="h-4 w-4" />
+                Unplaced Garden Beds
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {unplacedBeds.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  No unplaced beds. Create new beds in the "Manage Beds" tab.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {unplacedBeds.map(bed => (
+                    <div
+                      key={bed.id}
+                      className={`relative cursor-move p-4 rounded-lg border-2 hover:opacity-80 transition-opacity ${
+                        bed.type === 'raised' ? 'bg-amber-50 border-amber-400' :
+                        bed.type === 'ground' ? 'bg-green-50 border-green-400' :
+                        'bg-blue-50 border-blue-400'
+                      } ${draggedBed === bed.id ? 'opacity-50' : ''}`}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedBed(bed.id);
+                        setDragOffset({ x: 0, y: 0 });
+                        e.dataTransfer.setData('text/plain', `bed-${bed.id}`);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragEnd={() => {
+                        setDraggedBed(null);
+                      }}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => removeBed(bed.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                      
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{getBedTypeIcon(bed.type)}</span>
+                          {editingBedId === bed.id ? (
+                            <Input
+                              value={editingBedName}
+                              onChange={(e) => setEditingBedName(e.target.value)}
+                              onBlur={saveBedName}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveBedName();
+                                if (e.key === 'Escape') {
+                                  setEditingBedId(null);
+                                  setEditingBedName("");
+                                }
+                              }}
+                              className="h-6 text-sm flex-1"
+                              autoFocus
+                            />
+                          ) : (
+                            <span 
+                              className="font-medium cursor-pointer hover:underline flex-1"
+                              onClick={() => startEditingBed(bed.id, bed.name)}
+                            >
+                              {bed.name}
+                            </span>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="capitalize">
+                          {bed.type} bed
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <div>Dimensions: {bed.width}m × {bed.height}m</div>
+                        <div>Area: {(bed.width * bed.height).toFixed(1)}m²</div>
+                      </div>
+                      
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        Drag to garden layout to place
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="layout" className="space-y-6">
@@ -450,31 +542,44 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                       }
                     }}
                   >
-                    <div className="text-xs font-medium mb-1 flex items-center gap-1">
-                      {getBedTypeIcon(bed.type)}
-                      {editingBedId === bed.id ? (
-                        <Input
-                          value={editingBedName}
-                          onChange={(e) => setEditingBedName(e.target.value)}
-                          onBlur={saveBedName}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveBedName();
-                            if (e.key === 'Escape') {
-                              setEditingBedId(null);
-                              setEditingBedName("");
-                            }
-                          }}
-                          className="h-4 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1"
-                          autoFocus
-                        />
-                      ) : (
-                        <span 
-                          className="cursor-pointer hover:underline"
-                          onClick={() => startEditingBed(bed.id, bed.name)}
-                        >
-                          {bed.name}
-                        </span>
-                      )}
+                    <div className="text-xs font-medium mb-1 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        {getBedTypeIcon(bed.type)}
+                        {editingBedId === bed.id ? (
+                          <Input
+                            value={editingBedName}
+                            onChange={(e) => setEditingBedName(e.target.value)}
+                            onBlur={saveBedName}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveBedName();
+                              if (e.key === 'Escape') {
+                                setEditingBedId(null);
+                                setEditingBedName("");
+                              }
+                            }}
+                            className="h-4 text-xs border-0 p-0 bg-transparent focus:bg-white focus:border focus:px-1"
+                            autoFocus
+                          />
+                        ) : (
+                          <span 
+                            className="cursor-pointer hover:underline"
+                            onClick={() => startEditingBed(bed.id, bed.name)}
+                          >
+                            {bed.name}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 opacity-60 hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeBed(bed.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                     <div className="text-xs text-muted-foreground mb-2">
                       {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
