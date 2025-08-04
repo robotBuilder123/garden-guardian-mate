@@ -497,7 +497,7 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                     <Badge
                       key={plant.id}
                       variant="outline"
-                      className="cursor-move p-2 hover:bg-primary/10 flex items-center gap-1 select-none"
+                      className="cursor-move p-4 min-h-12 min-w-20 hover:bg-primary/10 flex items-center gap-1 select-none text-sm font-medium border-2 hover:border-primary/50 hover:shadow-md transition-all duration-200 touch-manipulation"
                       draggable
                       onDragStart={(e) => {
                         console.log('Starting plant drag:', plant.id);
@@ -560,11 +560,11 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                   {unplacedBeds.map(bed => (
                     <div
                       key={bed.id}
-                      className={`relative cursor-grab active:cursor-grabbing p-3 rounded-lg border-2 hover:shadow-lg transition-all duration-200 select-none ${
-                        bed.type === 'raised' ? 'bg-amber-100 border-amber-400 hover:bg-amber-150' :
-                        bed.type === 'ground' ? 'bg-green-100 border-green-400 hover:bg-green-150' :
-                        'bg-blue-100 border-blue-400 hover:bg-blue-150'
-                      } ${draggedBed === bed.id ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                      className={`relative cursor-grab active:cursor-grabbing p-6 min-h-20 min-w-32 rounded-lg border-3 hover:shadow-xl transition-all duration-200 select-none touch-manipulation ${
+                        bed.type === 'raised' ? 'bg-amber-100 border-amber-400 hover:bg-amber-150 hover:border-amber-500' :
+                        bed.type === 'ground' ? 'bg-green-100 border-green-400 hover:bg-green-150 hover:border-green-500' :
+                        'bg-blue-100 border-blue-400 hover:bg-blue-150 hover:border-blue-500'
+                      } ${draggedBed === bed.id ? 'opacity-60 scale-95 shadow-2xl ring-4 ring-primary/30' : 'hover:scale-110'}`}
                       draggable
                       onDragStart={(e) => {
                         setDraggedBed(bed.id);
@@ -623,11 +623,11 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
             </Card>
           )}
 
-          {/* Garden Grid */}
+           {/* Garden Grid */}
           <div 
-            className={`relative bg-green-50 rounded-lg p-6 min-h-96 border-2 transition-all duration-200 ${
-              draggedBed ? 'border-green-400 bg-green-100 border-dashed' : 'border-green-200'
-            }`}
+            className={`relative bg-green-50 rounded-lg p-6 min-h-96 border-2 transition-all duration-200 touch-manipulation ${
+              draggedBed ? 'border-green-400 bg-green-100 border-dashed shadow-inner' : 'border-green-200'
+            } ${draggedPlant ? 'bg-blue-50 border-blue-300' : ''}`}
             data-garden-container
             onDragOver={(e) => {
               e.preventDefault();
@@ -725,8 +725,13 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                   Garden Layout
                 </h4>
                 {draggedBed && (
-                  <div className="text-xs text-green-600 font-medium animate-pulse">
-                    Drop bed anywhere in the garden area
+                  <div className="text-sm text-green-600 font-semibold animate-pulse bg-green-100 px-3 py-2 rounded-lg border border-green-300">
+                    🎯 Drop bed anywhere in the garden area
+                  </div>
+                )}
+                {draggedPlant && (
+                  <div className="text-sm text-blue-600 font-semibold animate-pulse bg-blue-100 px-3 py-2 rounded-lg border border-blue-300">
+                    🌱 Drop plant on any garden bed
                   </div>
                 )}
               </div>
@@ -747,13 +752,13 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                 return (
                   <div
                     key={bed.id}
-                    className={`absolute border-2 rounded-lg p-3 cursor-move select-none ${
-                      bed.type === 'raised' ? 'bg-amber-100 border-amber-400' :
-                      bed.type === 'ground' ? 'bg-green-100 border-green-400' :
-                      'bg-blue-100 border-blue-400'
-                    } ${isOvercrowded ? 'ring-2 ring-red-400' : ''} ${
-                      draggedBed === bed.id ? 'opacity-50' : ''
-                    }`}
+                    className={`absolute border-3 rounded-lg p-4 cursor-move select-none touch-manipulation hover:shadow-xl transition-all duration-200 ${
+                      bed.type === 'raised' ? 'bg-amber-100 border-amber-400 hover:bg-amber-150' :
+                      bed.type === 'ground' ? 'bg-green-100 border-green-400 hover:bg-green-150' :
+                      'bg-blue-100 border-blue-400 hover:bg-blue-150'
+                    } ${isOvercrowded ? 'ring-4 ring-red-400 animate-pulse' : ''} ${
+                      draggedBed === bed.id ? 'opacity-60 shadow-2xl ring-4 ring-primary/30' : ''
+                    } ${draggedPlant ? 'ring-2 ring-blue-300 border-blue-400' : ''}`}
                     style={{
                       left: `${bed.x * 60}px`,
                       top: `${bed.y * 60 + 40}px`,
@@ -849,27 +854,28 @@ export const GardenLayout = ({ plants, onUpdatePlant }: GardenLayoutProps) => {
                       {totalUsedSpace.toFixed(1)}/{totalSpace.toFixed(1)}m²
                     </div>
                     
-                     {bedPlants.map(({ plant, x, y }) => (
-                       <div
-                         key={plant.id}
-                         className="absolute bg-green-600 text-white text-xs p-1 rounded shadow-sm cursor-move select-none"
-                         style={{
-                           left: `${x * 100}%`,
-                           top: `${y * 100}%`,
-                           transform: 'translate(-50%, -50%)',
-                           minWidth: '40px',
-                           textAlign: 'center'
-                         }}
-                         draggable
-                         onDragStart={(e) => {
-                           setDraggedPlant(plant.id);
-                           e.dataTransfer.setData('text/plain', plant.id);
-                           e.dataTransfer.setData('application/plant-id', plant.id);
-                         }}
-                         onDragEnd={() => {
-                           setDraggedPlant(null);
-                         }}
-                         onTouchStart={(e) => handleTouchStart(e, 'plant', plant.id)}
+                       {bedPlants.map(({ plant, x, y }) => (
+                         <div
+                           key={plant.id}
+                           className="absolute bg-green-600 text-white text-sm p-3 min-h-12 min-w-16 rounded-lg shadow-lg cursor-move select-none border-2 border-white hover:bg-green-700 hover:shadow-xl transition-all duration-200 touch-manipulation"
+                           style={{
+                             left: `${x * 100}%`,
+                             top: `${y * 100}%`,
+                             transform: 'translate(-50%, -50%)',
+                             textAlign: 'center',
+                             fontSize: '12px',
+                             lineHeight: '1.2'
+                           }}
+                           draggable
+                           onDragStart={(e) => {
+                             setDraggedPlant(plant.id);
+                             e.dataTransfer.setData('text/plain', plant.id);
+                             e.dataTransfer.setData('application/plant-id', plant.id);
+                           }}
+                           onDragEnd={() => {
+                             setDraggedPlant(null);
+                           }}
+                           onTouchStart={(e) => handleTouchStart(e, 'plant', plant.id)}
                          onTouchMove={handleTouchMove}
                          onTouchEnd={handleTouchEnd}
                          onDoubleClick={() => startEditingPlant(plant.id, plant.name)}
